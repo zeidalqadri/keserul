@@ -3,16 +3,40 @@
 
 class WhatsAppVoiceTranscriber {
   constructor() {
+    console.log('[OwlWritey] WhatsAppVoiceTranscriber content script injected and running');
+    
+    // Filter out noisy WhatsApp CDN 403 errors from console
+    this.setupConsoleFiltering();
+    
     this.observer = null;
-    this.transcriber = null;
     this.settings = {};
+    // Map HTTP status codes to user-friendly messages (Task 20.1)
+    this.statusMessages = {
+      403: 'Access denied – refresh or reopen chat',
+      410: 'Message expired – ask sender to resend'
+      // 5xx and other codes will fall back to a generic message handled later
+    };
     this.processedMessages = new Set();
     this.isInitialized = false;
     this.debounceTimer = null;
     
-    // Selectors for WhatsApp Web elements
+    // Selectors for WhatsApp Web elements (multiple fallbacks for robustness)
     this.selectors = {
-      voiceMessage: '[data-testid="audio-play"]',
+      voiceMessage: [
+        '[data-icon="audio-play"]',
+        'span[data-icon="audio-play"]',
+        '[data-testid="audio-play"]',
+        '[data-testid="audio"]', 
+        'button[data-testid*="audio"]',
+        'div[data-testid*="audio"]',
+        '[role="button"] span[data-testid*="audio"]',
+        'button[aria-label*="audio"]',
+        '.message-in audio, .message-out audio',
+        'audio',
+        'button[data-testid="media-play"]',
+        'span[data-testid="audio-duration"]',
+        '[data-icon*="audio"]'
+      ],
       audioElement: 'audio',
       messageContainer: '[data-testid="msg-meta"]',
       chatName: '[data-testid="conversation-title"]',
@@ -22,15 +46,38 @@ class WhatsAppVoiceTranscriber {
     this.init();
   }
 
+  setupConsoleFiltering() {
+    // Store original console.error
+    const originalError = console.error;
+    
+    // Override console.error to filter known, expected WhatsApp errors
+    console.error = (...args) => {
+      const message = args.join(' ');
+      
+      // Filter out expected WhatsApp CDN 403 errors (these are normal due to media encryption)
+      if (message.includes('media-kul3-1.cdn.whatsapp.net') && 
+          message.includes('403') && 
+          message.includes('Forbidden')) {
+        return; // Suppress this expected error
+      }
+      
+      // Filter out storage mutation events (Chrome internal)
+      if (message.includes('x-storagemutated') || 
+          message.includes('Event handler') && message.includes('initial evaluation')) {
+        return; // Suppress this Chrome internal warning
+      }
+      
+      // Allow all other errors to be logged normally
+      originalError.apply(console, args);
+    };
+  }
+
   async init() {
     try {
       console.log('Initializing WhatsApp Voice Transcriber...');
       
       // Load settings
       await this.loadSettings();
-      
-      // Initialize transcriber
-      await this.initializeTranscriber();
       
       // Start observing DOM changes
       this.startObserving();
@@ -44,18 +91,83 @@ class WhatsAppVoiceTranscriber {
       this.isInitialized = true;
       console.log('WhatsApp Voice Transcriber initialized successfully');
       
-      // Process existing voice messages
-      this.processExistingVoiceMessages();
+      // Wait for WhatsApp to be fully loaded before scanning for voice messages
+      this.waitForWhatsAppReady();
       
     } catch (error) {
       console.error('Failed to initialize WhatsApp Voice Transcriber:', error);
     }
   }
 
+  // Wait for WhatsApp to be fully loaded before processing voice messages
+  async waitForWhatsAppReady() {
+    console.log('[OwlWritey] Waiting for WhatsApp to fully load...');
+    
+    const maxWaitTime = 30000; // 30 seconds max wait
+    const checkInterval = 1000; // Check every 1 second
+    const startTime = Date.now();
+    
+    const checkReady = () => {
+      // Check for reliable WhatsApp readiness indicators
+      const indicators = [
+        // Primary: WhatsApp title in document indicates app is loaded
+        () => document.title.includes('WhatsApp'),
+        // Secondary: Main app container exists
+        () => document.querySelector('#app') !== null,
+        // Tertiary: Any basic WhatsApp UI element
+        () => document.querySelector('header') !== null || document.querySelector('[role="banner"]') !== null
+      ];
+      
+      const passedChecks = indicators.filter(check => {
+        try {
+          return check();
+        } catch (e) {
+          return false;
+        }
+      });
+      
+      console.log(`[OwlWritey] WhatsApp loading check: ${passedChecks.length}/${indicators.length} indicators ready`);
+      console.log(`[OwlWritey] Document title: "${document.title}"`);
+      
+      // Consider WhatsApp ready if title includes WhatsApp (most reliable indicator)
+      if (passedChecks.length >= 1 && document.title.includes('WhatsApp')) {
+        console.log('[OwlWritey] WhatsApp appears to be loaded! Starting voice message scan...');
+        
+        // Add a small delay to ensure rendering is complete
+        setTimeout(() => {
+          this.processExistingVoiceMessages();
+        }, 2000);
+        
+        return true;
+      }
+      
+      // Check timeout
+      if (Date.now() - startTime > maxWaitTime) {
+        console.log('[OwlWritey] Timeout waiting for WhatsApp to load. Starting scan anyway...');
+        this.processExistingVoiceMessages();
+        return true;
+      }
+      
+      return false;
+    };
+    
+    // Initial check
+    if (checkReady()) {
+      return;
+    }
+    
+    // Poll until ready or timeout
+    const pollInterval = setInterval(() => {
+      if (checkReady()) {
+        clearInterval(pollInterval);
+      }
+    }, checkInterval);
+  }
+
   // Load settings from storage
   async loadSettings() {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (response) => {
+      sendMessageWithRetry({ type: 'GET_SETTINGS' }, { maxRetries: 5, initialDelay: 1000 }, (response) => {
         this.settings = response || {
           autoTranscribe: true,
           generateSummaries: true,
@@ -66,52 +178,6 @@ class WhatsAppVoiceTranscriber {
         resolve();
       });
     });
-  }
-
-  // Initialize the Whisper transcriber
-  async initializeTranscriber() {
-    // Create a worker for transcription
-    const workerBlob = new Blob([`
-      // Import the whisper-worker.js content here
-      ${this.getWhisperWorkerCode()}
-    `], { type: 'application/javascript' });
-    
-    this.transcriber = new Worker(URL.createObjectURL(workerBlob));
-    
-    this.transcriber.onmessage = (event) => {
-      this.handleTranscriberMessage(event.data);
-    };
-    
-    // Initialize the worker
-    this.transcriber.postMessage({
-      type: 'INITIALIZE',
-      data: { modelName: 'whisper-tiny' }
-    });
-  }
-
-  // Get the Whisper worker code (simplified for demo)
-  getWhisperWorkerCode() {
-    return `
-      // Simplified worker implementation
-      self.addEventListener('message', async (event) => {
-        const { type, data } = event.data;
-        
-        if (type === 'TRANSCRIBE') {
-          // Simulate transcription
-          setTimeout(() => {
-            self.postMessage({
-              type: 'TRANSCRIPTION_COMPLETE',
-              data: {
-                transcript: 'Hello, this is a test transcription.',
-                language: 'en',
-                confidence: 0.95,
-                duration: 2.5
-              }
-            });
-          }, 2000);
-        }
-      });
-    `;
   }
 
   // Start observing DOM changes
@@ -132,12 +198,73 @@ class WhatsAppVoiceTranscriber {
     });
   }
 
-  // Process existing voice messages on page load
+  // Process existing voice messages on page load (called after WhatsApp is ready)
   processExistingVoiceMessages() {
-    const voiceMessages = document.querySelectorAll(this.selectors.voiceMessage);
-    voiceMessages.forEach(message => {
-      this.processVoiceMessage(message);
+    console.log('[OwlWritey] Looking for existing voice messages...');
+    const voiceMessages = this.findVoiceMessages(document);
+    console.log(`[OwlWritey] Found ${voiceMessages.length} existing voice messages`);
+    
+    if (voiceMessages.length === 0) {
+      console.log('[OwlWritey] No voice messages found in current view. They will be detected when they appear.');
+      
+      // Optional debug info (only if needed)
+      this.selectors.voiceMessage.forEach(selector => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            console.log(`[OwlWritey] DEBUG: ${selector} found ${elements.length} elements`);
+          }
+        } catch (e) {
+          // Ignore invalid selectors
+        }
+      });
+    } else {
+      console.log('[OwlWritey] Processing existing voice messages...');
+      voiceMessages.forEach(message => {
+        this.processVoiceMessage(message);
+      });
+    }
+  }
+
+  // Find voice messages using multiple selectors
+  findVoiceMessages(container) {
+    const found = new Set();
+    
+    this.selectors.voiceMessage.forEach(selector => {
+      try {
+        const elements = container.querySelectorAll(selector);
+        elements.forEach(el => {
+          // If we found an audio play button/icon, find its parent voice message container
+          let voiceMessageContainer = el;
+          
+          // Look for the actual voice message container (usually a few levels up)
+          let parent = el.parentElement;
+          let depth = 0;
+          while (parent && depth < 10) {
+            // Look for common voice message container patterns
+            const classList = parent.classList ? Array.from(parent.classList).join(' ') : '';
+            const hasVoiceMessageClass = classList.includes('message') || 
+                                       parent.hasAttribute('data-testid') ||
+                                       parent.querySelector('audio') ||
+                                       classList.includes('voice') ||
+                                       classList.includes('audio');
+            
+            if (hasVoiceMessageClass) {
+              voiceMessageContainer = parent;
+              break;
+            }
+            parent = parent.parentElement;
+            depth++;
+          }
+          
+          found.add(voiceMessageContainer);
+        });
+      } catch (e) {
+        // Ignore invalid selectors
+      }
     });
+    
+    return Array.from(found);
   }
 
   // Process new voice messages from mutations
@@ -147,11 +274,23 @@ class WhatsAppVoiceTranscriber {
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Check if the added node is a voice message
-            const voiceMessages = node.querySelectorAll ? 
-              node.querySelectorAll(this.selectors.voiceMessage) : [];
+            const voiceMessages = this.findVoiceMessages(node);
             
-            if (node.matches && node.matches(this.selectors.voiceMessage)) {
+            // Also check if the node itself is a voice message
+            const isVoiceMessage = this.selectors.voiceMessage.some(selector => {
+              try {
+                return node.matches && node.matches(selector);
+              } catch (e) {
+                return false;
+              }
+            });
+            
+            if (isVoiceMessage) {
               voiceMessages.push(node);
+            }
+            
+            if (voiceMessages.length > 0) {
+              console.log(`[OwlWritey] Found ${voiceMessages.length} new voice messages`);
             }
             
             voiceMessages.forEach(message => {
@@ -165,37 +304,101 @@ class WhatsAppVoiceTranscriber {
 
   // Process a single voice message
   processVoiceMessage(voiceMessageElement) {
+    if (!voiceMessageElement) {
+      console.log('[OwlWritey] Invalid voice message element, skipping');
+      return;
+    }
+    
     const messageId = this.getMessageId(voiceMessageElement);
     
     if (this.processedMessages.has(messageId)) {
+      console.log('[OwlWritey] Message already processed, skipping:', messageId);
       return;
     }
     
     this.processedMessages.add(messageId);
+    console.log('[OwlWritey] Processing new voice message:', messageId);
     
     // Add transcribe button
     this.addTranscribeButton(voiceMessageElement);
     
-    // Auto-transcribe if enabled
-    if (this.settings.autoTranscribe) {
-      setTimeout(() => {
-        this.transcribeVoiceMessage(voiceMessageElement);
-      }, 1000);
-    }
+    // TEMPORARILY DISABLE auto-transcription to stop the loop
+    console.log('[OwlWritey] Auto-transcription disabled to prevent loops. Use manual transcribe button or Ctrl+Shift+T.');
+    
+    // Auto-transcribe if enabled (DISABLED FOR NOW)
+    // if (this.settings.autoTranscribe) {
+    //   setTimeout(() => {
+    //     this.transcribeVoiceMessage(voiceMessageElement);
+    //   }, 1000);
+    // }
   }
 
   // Get unique message ID
   getMessageId(element) {
-    const messageContainer = element.closest(this.selectors.messageContainer);
-    return messageContainer ? messageContainer.textContent.slice(0, 50) : Date.now().toString();
+    if (!element) return 'invalid-' + Date.now();
+    
+    // Try multiple strategies to get a unique ID
+    let id = '';
+    
+    // Strategy 1: Look for any existing data attributes
+    if (element.dataset && element.dataset.id) {
+      id = 'data-id-' + element.dataset.id;
+    }
+    
+    // Strategy 2: Look for message container with data-testid
+    if (!id) {
+      const messageContainer = element.closest('[data-testid*="message"]');
+      if (messageContainer) {
+        const timestamp = messageContainer.querySelector('[data-testid*="timestamp"]');
+        if (timestamp) {
+          id = 'timestamp-' + timestamp.textContent.trim();
+        } else {
+          id = 'container-' + messageContainer.textContent.slice(0, 30).replace(/\s+/g, '-');
+        }
+      }
+    }
+    
+    // Strategy 3: Use audio element source or duration if available
+    if (!id) {
+      const audioEl = element.querySelector('audio') || element.closest('*').querySelector('audio');
+      if (audioEl && audioEl.src) {
+        id = 'audio-src-' + audioEl.src.slice(-20);
+      } else if (audioEl && audioEl.duration) {
+        id = 'audio-duration-' + audioEl.duration;
+      }
+    }
+    
+    // Strategy 4: Use element position and content as fallback
+    if (!id) {
+      const rect = element.getBoundingClientRect();
+      id = `pos-${Math.round(rect.top)}-${Math.round(rect.left)}-${element.textContent.slice(0, 10).replace(/\s+/g, '-')}`;
+    }
+    
+    // Final fallback
+    if (!id) {
+      id = 'fallback-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    }
+    
+    return id;
   }
 
   // Add transcribe button to voice message
   addTranscribeButton(voiceMessageElement) {
-    // Check if button already exists
-    if (voiceMessageElement.querySelector('.transcribe-btn')) {
+    if (!voiceMessageElement) {
+      console.log('[OwlWritey] Cannot add transcribe button - invalid element');
       return;
     }
+    
+    // Check if button already exists in the element or its parent
+    const existingButton = voiceMessageElement.querySelector('.transcribe-btn') ||
+                          (voiceMessageElement.parentNode && voiceMessageElement.parentNode.querySelector('.transcribe-btn'));
+    
+    if (existingButton) {
+      console.log('[OwlWritey] Transcribe button already exists, skipping');
+      return;
+    }
+    
+    console.log('[OwlWritey] Adding transcribe button to voice message');
     
     const button = document.createElement('button');
     button.className = 'transcribe-btn';
@@ -214,7 +417,16 @@ class WhatsAppVoiceTranscriber {
     
     button.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.transcribeVoiceMessage(voiceMessageElement);
+      
+      // Dynamically find the voice message element to avoid stale references
+      const currentVoiceMessage = this.findVoiceMessageFromButton(button);
+      if (currentVoiceMessage) {
+        console.log('[OwlWritey] Found current voice message element for transcription');
+        this.transcribeVoiceMessage(currentVoiceMessage);
+      } else {
+        console.error('[OwlWritey] Could not find voice message element from button');
+        this.showToast('Could not find voice message to transcribe', 'error');
+      }
     });
     
     button.addEventListener('mouseenter', () => {
@@ -226,12 +438,91 @@ class WhatsAppVoiceTranscriber {
     });
     
     // Insert button after the voice message
-    voiceMessageElement.parentNode.insertBefore(button, voiceMessageElement.nextSibling);
+    try {
+      if (voiceMessageElement.parentNode) {
+        voiceMessageElement.parentNode.insertBefore(button, voiceMessageElement.nextSibling);
+        console.log('[OwlWritey] Transcribe button added successfully');
+      } else {
+        console.log('[OwlWritey] Cannot add button - no parent node');
+      }
+    } catch (error) {
+      console.error('[OwlWritey] Error adding transcribe button:', error);
+    }
+  }
+
+  // Find voice message element from transcribe button (avoids stale references)
+  findVoiceMessageFromButton(button) {
+    if (!button || !button.parentNode) {
+      return null;
+    }
+    
+    // Strategy 1: Look for voice message elements in the same parent
+    const parent = button.parentNode;
+    
+    // Look for audio play/pause buttons (voice message indicators)
+    const voiceSelectors = [
+      '[data-icon="audio-play"]',
+      '[data-icon="audio-pause"]', 
+      'span[data-icon="audio-play"]',
+      'span[data-icon="audio-pause"]'
+    ];
+    
+    for (const selector of voiceSelectors) {
+      const voiceElement = parent.querySelector(selector);
+      if (voiceElement) {
+        console.log('[OwlWritey] Found voice message using selector:', selector);
+        return voiceElement;
+      }
+    }
+    
+    // Strategy 2: Look in the grandparent container
+    const grandParent = parent.parentNode;
+    if (grandParent) {
+      for (const selector of voiceSelectors) {
+        const voiceElement = grandParent.querySelector(selector);
+        if (voiceElement) {
+          console.log('[OwlWritey] Found voice message in grandparent using selector:', selector);
+          return voiceElement;
+        }
+      }
+    }
+    
+    // Strategy 3: Look for the message container and find voice elements within
+    let messageContainer = button.closest('[data-testid*="message"]') || 
+                          button.closest('[class*="message"]');
+    
+    if (messageContainer) {
+      for (const selector of voiceSelectors) {
+        const voiceElement = messageContainer.querySelector(selector);
+        if (voiceElement) {
+          console.log('[OwlWritey] Found voice message in message container using selector:', selector);
+          return voiceElement;
+        }
+      }
+    }
+    
+    console.log('[OwlWritey] Could not find voice message element from button');
+    return null;
   }
 
   // Transcribe a voice message
   async transcribeVoiceMessage(voiceMessageElement) {
+    // Critical: Validate element first
+    if (!voiceMessageElement) {
+      console.error('[OwlWritey] Cannot transcribe - voiceMessageElement is null');
+      this.showToast('Cannot transcribe - invalid voice message', 'error');
+      return;
+    }
+    
+    if (!voiceMessageElement.parentNode) {
+      console.error('[OwlWritey] Cannot transcribe - voice message element has no parent');
+      this.showToast('Cannot transcribe - element is disconnected', 'error');
+      return;
+    }
+    
     try {
+      console.log('[OwlWritey] Starting transcription for voice message');
+      
       // Check battery level if battery saver is enabled
       if (this.settings.batterySaver) {
         const batteryLevel = await this.getBatteryLevel();
@@ -241,7 +532,7 @@ class WhatsAppVoiceTranscriber {
         }
       }
       
-      // Show loading state
+      // Show loading state (with additional safety check)
       this.showLoadingState(voiceMessageElement);
       
       // Extract audio blob
@@ -254,15 +545,23 @@ class WhatsAppVoiceTranscriber {
       // Get chat information
       const chatInfo = this.getChatInfo();
       
-      // Start transcription
-      this.transcriber.postMessage({
-        type: 'TRANSCRIBE',
+      // Convert audio blob to ArrayBuffer
+      const audioBuffer = await audioBlob.arrayBuffer();
+      
+      // Send audio data to background/service worker for transcription
+      sendMessageWithRetry({
+        type: 'TRANSCRIBE_AUDIO',
         data: {
-          audioBlob,
+          audioBuffer,
           options: {
             language: this.settings.language,
             batterySaver: this.settings.batterySaver
-          }
+          },
+          chatInfo
+        }
+      }, { maxRetries: 5, initialDelay: 1000 }, (response) => {
+        if (response === undefined) {
+          this.showError(voiceMessageElement, 'Failed to communicate with background script. Transcription unavailable.');
         }
       });
       
@@ -274,30 +573,244 @@ class WhatsAppVoiceTranscriber {
       };
       
     } catch (error) {
-      console.error('Error transcribing voice message:', error);
-      this.showError(voiceMessageElement, error.message);
+      console.error('[OwlWritey] Error transcribing voice message:', error);
+      
+      // Only show error UI if element is still valid
+      if (voiceMessageElement && voiceMessageElement.parentNode) {
+        this.showError(voiceMessageElement, error.message);
+      } else {
+        // Show toast notification instead if element is invalid
+        console.error('[OwlWritey] Cannot show error on invalid element, using toast');
+        this.showToast('Transcription failed: ' + error.message, 'error');
+      }
     }
   }
 
   // Extract audio blob from voice message
   async extractAudioBlob(voiceMessageElement) {
-    try {
-      // Find the audio element
-      const audioElement = voiceMessageElement.querySelector(this.selectors.audioElement);
-      
-      if (!audioElement || !audioElement.src) {
-        throw new Error('No audio element found');
-      }
-      
-      // Convert audio URL to blob
-      const response = await fetch(audioElement.src);
-      const audioBlob = await response.blob();
-      
-      return audioBlob;
-    } catch (error) {
-      console.error('Error extracting audio blob:', error);
+    if (!voiceMessageElement) {
+      console.error('[OwlWritey] Cannot extract audio - voiceMessageElement is null');
       return null;
     }
+    
+    try {
+      console.log('[OwlWritey] Extracting audio blob from voice message...');
+      const blob = await this.getPlayableAudioBlob(voiceMessageElement);
+      console.log('[OwlWritey] Audio blob extraction completed');
+      return blob;
+    } catch (error) {
+      console.error('[OwlWritey] Error extracting audio blob:', error);
+      
+      // Only show error if element is still valid
+      if (voiceMessageElement && voiceMessageElement.parentNode) {
+        this.showError(voiceMessageElement, 'Error extracting audio: ' + error.message);
+      } else {
+        // Show toast instead if element is invalid
+        this.showToast('Error extracting audio: ' + error.message, 'error');
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Wait for WhatsApp to attach a playable <audio> element (with a blob: URL) and return its Blob.
+   * If only a CDN URL is present, prompt the user to play the voice note in WhatsApp before transcribing.
+   */
+  async getPlayableAudioBlob(voiceMessageElement, timeout = 5000) {
+    if (!voiceMessageElement) {
+      throw new Error('Invalid voice message element for audio extraction');
+    }
+    
+    console.log('[OwlWritey DEBUG] === Starting audio extraction debug ===');
+    console.log('[OwlWritey DEBUG] Voice message element:', voiceMessageElement);
+    console.log('[OwlWritey DEBUG] Element data attributes:', Array.from(voiceMessageElement.attributes).map(attr => `${attr.name}="${attr.value}"`));
+    
+    // Snapshot initial state of all audio elements
+    const initialAudioElements = document.querySelectorAll('audio');
+    console.log('[OwlWritey DEBUG] Initial audio elements on page:', initialAudioElements.length);
+    initialAudioElements.forEach((audio, idx) => {
+      console.log(`[OwlWritey DEBUG] Initial audio[${idx}]:`, {
+        src: audio.src,
+        currentSrc: audio.currentSrc,
+        readyState: audio.readyState,
+        paused: audio.paused,
+        duration: audio.duration
+      });
+    });
+    
+    const start = Date.now();
+    
+    // 1. Try to find and click the play button to force WhatsApp to inject the audio element
+    try {
+      // Look for the actual play button (audio-play icon)
+      const playButton = voiceMessageElement.querySelector('[data-icon="audio-play"]') ||
+                        voiceMessageElement.closest('*').querySelector('[data-icon="audio-play"]') ||
+                        voiceMessageElement;
+      
+      if (playButton) {
+        console.log('[OwlWritey DEBUG] Found play button:', playButton);
+        console.log('[OwlWritey DEBUG] Play button attributes:', Array.from(playButton.attributes).map(attr => `${attr.name}="${attr.value}"`));
+        console.log('[OwlWritey DEBUG] Clicking play button to activate audio...');
+        playButton.click();
+        
+        // Wait a bit for click to process
+        await new Promise(r => setTimeout(r, 500));
+        
+        // Check if new audio elements appeared after click
+        const postClickAudioElements = document.querySelectorAll('audio');
+        console.log('[OwlWritey DEBUG] Audio elements after click:', postClickAudioElements.length);
+        if (postClickAudioElements.length > initialAudioElements.length) {
+          console.log('[OwlWritey DEBUG] New audio elements created after click!');
+          for (let i = initialAudioElements.length; i < postClickAudioElements.length; i++) {
+            const newAudio = postClickAudioElements[i];
+            console.log(`[OwlWritey DEBUG] New audio[${i}]:`, {
+              src: newAudio.src,
+              currentSrc: newAudio.currentSrc,
+              readyState: newAudio.readyState,
+              paused: newAudio.paused,
+              duration: newAudio.duration
+            });
+          }
+        }
+      } else {
+        console.log('[OwlWritey DEBUG] No play button found');
+      }
+    } catch (error) {
+      console.log('[OwlWritey DEBUG] Could not click play button:', error.message);
+    }
+
+    let attemptCount = 0;
+    while (Date.now() - start < timeout) {
+      attemptCount++;
+      console.log(`[OwlWritey DEBUG] === Detection attempt ${attemptCount} (${Date.now() - start}ms elapsed) ===`);
+      
+      // Search for audio elements in multiple locations
+      let audioElement = null;
+      
+      // Strategy 1: Direct child
+      console.log('[OwlWritey DEBUG] Strategy 1: Searching direct children...');
+      audioElement = voiceMessageElement.querySelector('audio');
+      if (audioElement) {
+        console.log('[OwlWritey DEBUG] Strategy 1 SUCCESS: Found audio in direct children');
+      }
+      
+      // Strategy 2: In the message container
+      if (!audioElement) {
+        console.log('[OwlWritey DEBUG] Strategy 2: Searching message container...');
+        const messageContainer = voiceMessageElement.closest('[data-testid*="message"]');
+        if (messageContainer) {
+          console.log('[OwlWritey DEBUG] Found message container:', messageContainer);
+          audioElement = messageContainer.querySelector('audio');
+          if (audioElement) {
+            console.log('[OwlWritey DEBUG] Strategy 2 SUCCESS: Found audio in message container');
+          }
+        } else {
+          console.log('[OwlWritey DEBUG] Strategy 2: No message container found');
+        }
+      }
+      
+      // Strategy 3: In the parent elements (up to 5 levels)
+      if (!audioElement) {
+        console.log('[OwlWritey DEBUG] Strategy 3: Searching parent elements...');
+        let parent = voiceMessageElement.parentElement;
+        let depth = 0;
+        while (parent && depth < 5) {
+          console.log(`[OwlWritey DEBUG] Strategy 3: Checking parent depth ${depth}:`, parent.tagName, parent.className);
+          audioElement = parent.querySelector('audio');
+          if (audioElement) {
+            console.log(`[OwlWritey DEBUG] Strategy 3 SUCCESS: Found audio at depth ${depth}`);
+            break;
+          }
+          parent = parent.parentElement;
+          depth++;
+        }
+      }
+      
+      // Strategy 4: Global search for recently created audio elements
+      if (!audioElement) {
+        console.log('[OwlWritey DEBUG] Strategy 4: Global search for recent audio elements...');
+        const allAudio = document.querySelectorAll('audio');
+        console.log(`[OwlWritey DEBUG] Strategy 4: Found ${allAudio.length} total audio elements`);
+        
+        if (allAudio.length > 0) {
+          // Find the most recently created audio element
+          audioElement = allAudio[allAudio.length - 1];
+          console.log('[OwlWritey DEBUG] Strategy 4: Using most recent audio element');
+        }
+      }
+      
+      if (audioElement) {
+        console.log('[OwlWritey DEBUG] Found audio element:', {
+          src: audioElement.src,
+          currentSrc: audioElement.currentSrc,
+          readyState: audioElement.readyState,
+          paused: audioElement.paused,
+          duration: audioElement.duration,
+          networkState: audioElement.networkState,
+          preload: audioElement.preload
+        });
+        
+        if (audioElement.src) {
+          const src = audioElement.src;
+          console.log('[OwlWritey DEBUG] Audio src found:', src);
+          
+          // Case A: blob URL already available – fetch locally (will succeed without credentials)
+          if (src.startsWith('blob:')) {
+            try {
+              console.log('[OwlWritey DEBUG] Found blob URL! Attempting to fetch...');
+              const resp = await fetch(src);
+              console.log('[OwlWritey DEBUG] Fetch response:', {
+                status: resp.status,
+                statusText: resp.statusText,
+                headers: Object.fromEntries(resp.headers.entries())
+              });
+              const blob = await resp.blob();
+              console.log('[OwlWritey DEBUG] Audio blob extracted successfully:', {
+                size: blob.size,
+                type: blob.type
+              });
+              return blob;
+            } catch (err) {
+              console.error('[OwlWritey DEBUG] Failed to fetch blob:', err);
+              throw new Error('Failed to fetch local audio blob.');
+            }
+          } else {
+            // Case B: CDN URL or other URL type
+            console.log('[OwlWritey DEBUG] Found non-blob URL:', src.substring(0, 100));
+            if (src.includes('whatsapp.net') || src.includes('cdn')) {
+              console.log('[OwlWritey DEBUG] Detected WhatsApp CDN URL - waiting for blob conversion...');
+            }
+          }
+        } else {
+          console.log('[OwlWritey DEBUG] Audio element has no src attribute');
+        }
+      } else {
+        console.log('[OwlWritey DEBUG] No audio element found in any strategy');
+      }
+      
+      // Log current DOM state around the voice message
+      console.log('[OwlWritey DEBUG] Current DOM structure around voice message:');
+      const parent = voiceMessageElement.parentElement;
+      if (parent) {
+        console.log('[OwlWritey DEBUG] Parent HTML:', parent.innerHTML.substring(0, 200) + '...');
+      }
+      
+      // Wait 250 ms before re-checking DOM
+      console.log('[OwlWritey DEBUG] Waiting 250ms before next attempt...');
+      await new Promise(r => setTimeout(r, 250));
+    }
+    
+    console.error('[OwlWritey DEBUG] === Timed out after', attemptCount, 'attempts ===');
+    console.error('[OwlWritey DEBUG] Final state - all audio elements:', document.querySelectorAll('audio').length);
+    document.querySelectorAll('audio').forEach((audio, idx) => {
+      console.error(`[OwlWritey DEBUG] Final audio[${idx}]:`, {
+        src: audio.src,
+        currentSrc: audio.currentSrc,
+        readyState: audio.readyState
+      });
+    });
+    
+    throw new Error('Timed out waiting for audio element. Try playing the voice note once then transcribe again.');
   }
 
   // Get chat information
@@ -470,10 +983,7 @@ class WhatsAppVoiceTranscriber {
 
   // Generate summary
   generateSummary(transcript) {
-    this.transcriber.postMessage({
-      type: 'GENERATE_SUMMARY',
-      data: { transcript }
-    });
+    // This method is now empty as the in-page worker is removed
   }
 
   // Handle summary completion
@@ -516,6 +1026,11 @@ class WhatsAppVoiceTranscriber {
 
   // Show loading state
   showLoadingState(voiceMessageElement) {
+    if (!voiceMessageElement || !voiceMessageElement.parentNode) {
+      console.log('[OwlWritey] Cannot show loading state - invalid element reference');
+      return;
+    }
+    
     const button = voiceMessageElement.parentNode.querySelector('.transcribe-btn');
     if (button) {
       button.textContent = '⏳ Transcribing...';
@@ -526,6 +1041,11 @@ class WhatsAppVoiceTranscriber {
 
   // Remove loading state
   removeLoadingState(voiceMessageElement) {
+    if (!voiceMessageElement || !voiceMessageElement.parentNode) {
+      console.log('[OwlWritey] Cannot remove loading state - invalid element reference');
+      return;
+    }
+    
     const button = voiceMessageElement.parentNode.querySelector('.transcribe-btn');
     if (button) {
       button.textContent = '➜ 📝 Transcribe';
@@ -534,10 +1054,34 @@ class WhatsAppVoiceTranscriber {
     }
   }
 
-  // Show error
+  // Show error with friendly message and expandable raw details (Task 20.2)
   showError(voiceMessageElement, errorMessage) {
     this.removeLoadingState(voiceMessageElement);
-    
+
+    // Check if we have a valid element to show error on
+    if (!voiceMessageElement || !voiceMessageElement.parentNode) {
+      console.log('[OwlWritey] Cannot show error - invalid element reference');
+      // Still show toast notification for user feedback
+      this.showToast('Transcription failed', 'error');
+      return;
+    }
+
+    // Attempt to extract numeric status code from the errorMessage string
+    let statusCode = null;
+    const match = /\b(\d{3})\b/.exec(errorMessage);
+    if (match) {
+      statusCode = parseInt(match[1], 10);
+    }
+
+    // Determine friendly message using statusMessages map
+    let friendlyMsg = errorMessage;
+    if (statusCode && this.statusMessages[statusCode]) {
+      friendlyMsg = this.statusMessages[statusCode];
+    } else if (statusCode && statusCode >= 500) {
+      friendlyMsg = 'WhatsApp server error – try again later';
+    }
+
+    // Build main error container
     const errorDiv = document.createElement('div');
     errorDiv.style.cssText = `
       margin-top: 8px;
@@ -548,9 +1092,31 @@ class WhatsAppVoiceTranscriber {
       font-size: 12px;
       border-left: 3px solid #c62828;
     `;
-    errorDiv.textContent = `Error: ${errorMessage}`;
-    
+
+    // Friendly text
+    const friendlyP = document.createElement('p');
+    friendlyP.style.margin = '0 0 4px 0';
+    friendlyP.textContent = `Error: ${friendlyMsg}`;
+    errorDiv.appendChild(friendlyP);
+
+    // Details accordion with raw message
+    const details = document.createElement('details');
+    details.style.marginTop = '4px';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Details';
+    summary.style.cursor = 'pointer';
+    details.appendChild(summary);
+    const pre = document.createElement('pre');
+    pre.textContent = errorMessage;
+    pre.style.whiteSpace = 'pre-wrap';
+    pre.style.userSelect = 'text';
+    details.appendChild(pre);
+    errorDiv.appendChild(details);
+
     voiceMessageElement.parentNode.appendChild(errorDiv);
+
+    // Toast notification for quick user visibility
+    this.showToast(friendlyMsg, 'error');
   }
 
   // Show toast notification
@@ -597,19 +1163,18 @@ class WhatsAppVoiceTranscriber {
     const title = 'WhatsApp Voice Transcriber';
     const message = transcript.length > 120 ? 
       transcript.substring(0, 120) + '...' : transcript;
-    
-    chrome.runtime.sendMessage({
+    sendMessageWithRetry({
       type: 'SHOW_NOTIFICATION',
       title,
       message
-    });
+    }, { maxRetries: 3, initialDelay: 1000 }, () => {});
   }
 
   // Get battery level
   async getBatteryLevel() {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'GET_BATTERY_LEVEL' }, (response) => {
-        resolve(response ? response.level : 1.0);
+      sendMessageWithRetry({ type: 'GET_BATTERY_LEVEL' }, { maxRetries: 3, initialDelay: 1000 }, (response) => {
+        resolve(response && response.level !== undefined ? response.level : 1.0);
       });
     });
   }
@@ -617,8 +1182,8 @@ class WhatsAppVoiceTranscriber {
   // Add keyboard shortcuts
   addKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
-      // Ctrl + Alt + T to transcribe latest voice message
-      if (e.ctrlKey && e.altKey && e.key === 'T') {
+      // Ctrl + Shift + T to transcribe latest voice message
+      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
         e.preventDefault();
         this.transcribeLatestVoiceMessage();
       }
@@ -627,12 +1192,14 @@ class WhatsAppVoiceTranscriber {
 
   // Transcribe the latest voice message
   transcribeLatestVoiceMessage() {
-    const voiceMessages = document.querySelectorAll(this.selectors.voiceMessage);
+    const voiceMessages = this.findVoiceMessages(document);
     const latestMessage = voiceMessages[voiceMessages.length - 1];
     
     if (latestMessage) {
+      console.log('[OwlWritey] Transcribing latest voice message');
       this.transcribeVoiceMessage(latestMessage);
     } else {
+      console.log('[OwlWritey] No voice messages found for transcription');
       this.showToast('No voice messages found', 'warning');
     }
   }
@@ -668,28 +1235,67 @@ class WhatsAppVoiceTranscriber {
       this.observer.disconnect();
     }
     
-    if (this.transcriber) {
-      this.transcriber.terminate();
-    }
-    
     console.log('WhatsApp Voice Transcriber cleaned up');
+  }
+
+  /**
+   * Show a persistent, dismissible banner for critical errors (e.g., BG script unavailable)
+   */
+  showPersistentBanner(message) {
+    // Remove any existing banner
+    const existing = document.getElementById('transcriber-banner');
+    if (existing) existing.remove();
+    const banner = document.createElement('div');
+    banner.id = 'transcriber-banner';
+    banner.style.cssText = `
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: #f44336;
+      color: white;
+      padding: 12px 24px;
+      font-size: 16px;
+      z-index: 10001;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    `;
+    banner.textContent = message;
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      margin-left: 16px;
+      cursor: pointer;
+    `;
+    closeBtn.onclick = () => banner.remove();
+    banner.appendChild(closeBtn);
+    document.body.appendChild(banner);
   }
 }
 
 // Initialize the transcriber when the page is ready
+let globalTranscriberInstance;
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new WhatsAppVoiceTranscriber();
+    globalTranscriberInstance = new WhatsAppVoiceTranscriber();
+    window.globalTranscriberInstance = globalTranscriberInstance; // Expose globally
   });
 } else {
-  new WhatsAppVoiceTranscriber();
+  globalTranscriberInstance = new WhatsAppVoiceTranscriber();
+  window.globalTranscriberInstance = globalTranscriberInstance; // Expose globally
 }
 
 // Handle messages from service worker
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.type) {
     case 'TRANSCRIBE_LATEST':
-      // This will be handled by the transcriber instance
+      if (globalTranscriberInstance) {
+        globalTranscriberInstance.transcribeLatestVoiceMessage();
+      }
       break;
       
     case 'SAVE_TO_DB':
@@ -698,5 +1304,95 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         transcriptDB.saveTranscript(request.data);
       }
       break;
+
+    case 'TRANSCRIPTION_COMPLETE': {
+      // Find the voice message element that matches the chatInfo (fallback to latest)
+      const voiceMessages = globalTranscriberInstance.findVoiceMessages(document);
+      let targetElement = null;
+      for (const element of voiceMessages) {
+        if (element.transcriptionContext && element.transcriptionContext.chatInfo &&
+            element.transcriptionContext.chatInfo.timestamp === request.chatInfo.timestamp) {
+          targetElement = element;
+          break;
+        }
+      }
+      if (!targetElement && voiceMessages.length > 0) {
+        targetElement = voiceMessages[voiceMessages.length - 1];
+      }
+      if (targetElement && globalTranscriberInstance) {
+        globalTranscriberInstance.displayTranscript(targetElement, request.data, request.chatInfo);
+      }
+      break;
+    }
+    case 'TRANSCRIPTION_ERROR': {
+      // Find the voice message element that matches the chatInfo (fallback to latest)
+      const voiceMessages = globalTranscriberInstance.findVoiceMessages(document);
+      let targetElement = null;
+      for (const element of voiceMessages) {
+        if (element.transcriptionContext && element.transcriptionContext.chatInfo &&
+            element.transcriptionContext.chatInfo.timestamp === request.chatInfo.timestamp) {
+          targetElement = element;
+          break;
+        }
+      }
+      if (!targetElement && voiceMessages.length > 0) {
+        targetElement = voiceMessages[voiceMessages.length - 1];
+      }
+      if (targetElement && globalTranscriberInstance) {
+        globalTranscriberInstance.showError(targetElement, request.error);
+      }
+      break;
+    }
   }
-}); 
+});
+
+// Export class for unit testing (Node/Jest environment)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = WhatsAppVoiceTranscriber;
+}
+
+// --- Utility: sendMessageWithRetry ---
+let bgCommWarningShown = false;
+const DEBUG_MODE = false; // Set true for verbose logging
+
+/**
+ * Sends a message to the background script with exponential backoff and retry limit.
+ * @param {object} message - The message to send.
+ * @param {object} [options] - { maxRetries, initialDelay }
+ * @param {function} callback - Callback to receive the response (may be undefined on failure).
+ */
+function sendMessageWithRetry(message, options = {}, callback) {
+  const maxRetries = options.maxRetries || 5;
+  let delay = options.initialDelay || 1000;
+  let attempt = 0;
+
+  function trySend() {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError || response === undefined) {
+        attempt++;
+        if (DEBUG_MODE) {
+          console.warn('[OwlWritey] BG comms failed (attempt', attempt, '):', chrome.runtime.lastError);
+        }
+        if (attempt >= maxRetries) {
+          if (!bgCommWarningShown) {
+            console.warn('[OwlWritey] Failed to communicate with background script after', attempt, 'attempts.');
+            bgCommWarningShown = true;
+          }
+          // Show user notification (if class instance available)
+          if (window.globalTranscriberInstance && typeof window.globalTranscriberInstance.showPersistentBanner === 'function') {
+            window.globalTranscriberInstance.showPersistentBanner(
+              'Extension background process is unavailable. Please refresh the page or check extension status.'
+            );
+          }
+          callback(undefined); // Final failure
+        } else {
+          setTimeout(trySend, delay);
+          delay *= 2;
+        }
+      } else {
+        callback(response);
+      }
+    });
+  }
+  trySend();
+} 

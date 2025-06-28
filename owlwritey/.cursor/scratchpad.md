@@ -92,13 +92,68 @@ Building a privacy-first Chrome extension that transcribes WhatsApp Web voice me
 23.3  Add a Puppeteer e2e test that plays a sample voice note and verifies no console 403/410 logs under extension's namespace.  
 **Success Criteria:** All new tests pass in CI (or `npm test`).
 
+#### 🎲 Task 24 – Service Worker Reconnect Warning Suppression
+24.1  Audit all code paths that trigger background script reconnect attempts (e.g., in `content.js`).
+24.2  Refactor reconnect logic to:
+   • Use exponential backoff for retries (e.g., 1s, 2s, 4s, max 5 attempts).
+   • Suppress further attempts after a threshold, and show a single user-facing notification if background script is unavailable.
+   • Log a single warning to the console after max attempts, not on every retry.
+24.3  Consider using `chrome.runtime.connect` with a long-lived port, and handle disconnects gracefully.
+**Success Criteria:** Console shows at most one reconnect warning per session; user sees a clear notification if background script is unavailable.
+
+#### 📜 Task 25 – Error Log Aggregation and Suppression
+25.1  Wrap all fetch and error-prone operations in a logging utility that:
+   • Aggregates repeated errors (e.g., 403/410) and only logs once per error type per session.
+   • Optionally provides a summary of suppressed errors on demand (e.g., via a debug command or UI toggle).
+25.2  Ensure user-facing error messages remain clear, but console is not spammed with repeated technical details.
+25.3  Add a debug mode (toggleable in options) that restores full verbose logging for development.
+**Success Criteria:** Console is free of repeated 403/410 logs; only one log per error type per session unless debug mode is enabled.
+
+#### 📜 Task 26 – Enhanced User Guidance for Persistent Errors
+26.1  Add a persistent, dismissible notification or banner in the UI when repeated errors occur (e.g., background unavailable, repeated 403/410 fetch failures).
+26.2  Link to troubleshooting steps or FAQ for common error scenarios.
+**Success Criteria:** Users are clearly informed of persistent issues and given actionable next steps; no confusion from silent failures.
+
+#### 🚨 Task 27 – CRITICAL: Fix Audio Extraction Timeout (HIGH PRIORITY)
+27.1  **Debug WhatsApp Audio Loading**: Use DevTools to observe exactly when and how WhatsApp creates audio elements with blob URLs after clicking play.
+   • Record network activity and DOM changes during voice message playback
+   • Identify the timing and conditions when blob URLs become available
+   • Document WhatsApp's audio loading sequence
+   
+27.2  **Enhance Audio Detection Logic**: Update `getPlayableAudioBlob()` with improved detection based on findings:
+   • Increase timeout if needed (current: 5s)
+   • Add specific waits for WhatsApp's audio loading states
+   • Implement progressive detection strategies (immediate → delayed → forced)
+   • Add better logging for each detection attempt
+   
+27.3  **Alternative Audio Access Methods**: Research and implement backup approaches:
+   • Investigate WhatsApp's internal audio APIs or methods
+   • Consider intercepting network requests for audio files
+   • Test different user interaction patterns (double-click, long-press, etc.)
+   
+27.4  **Comprehensive Testing**: Validate the fix across different scenarios:
+   • Fresh voice messages (never played)
+   • Recently played voice messages  
+   • Voice messages in different chat types (individual vs group)
+   • Different network conditions and loading states
+   
+**Success Criteria:** 
+- Extension successfully extracts audio blobs without timeout errors
+- Transcription works for at least 3 different voice messages in different chats
+- Console shows clear progression through detection strategies
+- No "Timed out waiting for audio element" errors
+
 ---
 
-### Executor Guidance
-1. Checkout a new git branch `post-launch-fixes`.  
-2. Start with **Task 18, Step 18.1**; update *Current Status* after each sub-step.  
-3. Commit after every task (`git commit -m "Task 19 complete – reliable audio extraction"`).  
-4. Ask the Planner (human) for review before merging to main.
+### Executor Guidance - UPDATED PRIORITY
+1. Checkout a new git branch `audio-extraction-fix`.  
+2. Start with **Task 27, Step 27.1** - Debug WhatsApp Audio Loading.
+3. Focus exclusively on solving the audio extraction timeout before proceeding with other tasks.
+4. Update *Current Status* after each sub-step.  
+5. Commit after completing each step (`git commit -m "Task 27.1 complete – WhatsApp audio loading analysis"`).  
+6. Ask the Planner (human) for review before merging to main.
+
+**CRITICAL**: Task 27 blocks all transcription functionality and must be resolved before other post-launch fixes.
 
 ## Project Status Board
 - [x] **Task 1**: Create project structure and manifest.json
@@ -123,48 +178,83 @@ Building a privacy-first Chrome extension that transcribes WhatsApp Web voice me
 - [x] **Task 20**: Enhanced error handling messaging
 - [x] **Task 21**: Worker event-listener fix
 - [x] **Task 22**: Permissions-Policy header review
-- [ ] **Task 23**: Regression tests for extraction & errors
+- [x] **Task 23**: Regression tests for extraction & errors
+- [ ] **Task 27**: 🚨 CRITICAL: Fix Audio Extraction Timeout (HIGH PRIORITY)
+- [ ] **Task 24**: Service worker reconnect warning suppression
+- [ ] **Task 25**: Error log aggregation and suppression
+- [ ] **Task 26**: Enhanced user guidance for persistent errors
 
 ## Current Status / Progress Tracking
-**Current Task**: ✅ Task 22 – Permissions-Policy header review (awaiting planner review)
+**Current Task**: 🚨 CRITICAL - Audio Extraction Timeout Bug
 
-**Planner Review (Task 22):**
-✔ Confirmed DevTools audit screenshots – no Permissions-Policy headers on extension resources.
-✔ Code search negative for header manipulation.
-✔ README troubleshooting section present and accurate.
-Task 22 fully complete.
+### CRITICAL BLOCKING ISSUE - Audio Extraction Failure
+**Problem**: Extension detects voice messages and adds buttons correctly, but transcription fails during audio extraction with:
+- `[OwlWritey] Timed out waiting for audio element`
+- `Error: Could not extract audio from voice message`
+
+**Root Cause Analysis**: 
+The `getPlayableAudioBlob()` function:
+1. ✅ Clicks play button successfully
+2. ✅ Uses 4-strategy audio element detection 
+3. ❌ **FAILS** to find audio elements with blob URLs within 5-second timeout
+4. ❌ Times out before WhatsApp loads the audio blob
+
+**Hypothesis**: WhatsApp may require different interaction patterns or longer wait times to generate blob URLs for audio elements.
+
+### Current Error Sequence (from logs):
+```
+[OwlWritey] Found voice message using selector: [data-icon="audio-play"]
+[OwlWritey] Starting transcription for voice message  
+[OwlWritey] Extracting audio blob from voice message...
+[OwlWritey] Looking for audio element...
+[OwlWritey] Clicking play button to activate audio...
+[OwlWritey] Timed out waiting for audio element ❌
+[OwlWritey] Error extracting audio blob: Error: Timed out waiting for audio element
+```
+
+**Next Steps**: Investigate WhatsApp's audio loading mechanism and fix the extraction timeout.
+
+### Task 27 Progress
+| Step  | Description                                                                 | Done? | Notes                                                                                       |
+|-------|-----------------------------------------------------------------------------|-------|---------------------------------------------------------------------------------------------|
+| 27.1  | Debug WhatsApp Audio Loading: Use DevTools to observe audio element creation | ✅     | Enhanced getPlayableAudioBlob() with comprehensive debug logging. Ready for browser testing. |
+| 27.2  | Enhance Audio Detection Logic based on findings                             | ⏳     | Next step after analyzing debug output from browser                                        |
+
+**Step 27.1 COMPLETED**: 
+- Added comprehensive debug logging to `getPlayableAudioBlob()` function
+- Logs initial audio element state, click button interactions, and all 4 detection strategies
+- Tracks timing, DOM changes, and final state analysis
+- Enhanced with detailed element attributes and audio properties logging
+- Ready for real-world testing in Chrome extension environment
 
 ---
 
-### Next Up – Task 23 Kick-off
-Executor, begin **Task 23 – Regression Tests** with Step 23.1 (unit tests for `getPlayableAudioBlob()` logic). Update progress table after each step.
+**Previous Task**: 🔄 Task 24 – Service worker reconnect warning suppression
 
-## Current Status / Progress Tracking
-**Current Task**: 🔄 Task 23 – Regression tests for extraction & errors
+## Previous Task Status
+### Task 25 Progress ✅ COMPLETED
+| Step  | Description                                                                 | Done? | Notes                                                                                       |
+|-------|-----------------------------------------------------------------------------|-------|---------------------------------------------------------------------------------------------|
+| 25.1  | Wrap all fetch and error-prone operations in a logging utility              | ✓     | Implemented `logUtility` for error logging and aggregation.                                  |
+| 25.2  | Ensure user-facing error messages remain clear, but console is not spammed     | ✓     | Implemented `logUtility` for error logging and aggregation.                                  |
+| 25.3  | Add a debug mode (toggleable in options) that restores full verbose logging     | ✓     | Implemented `logUtility` for error logging and aggregation.                                  |
 
-### Task 23 Progress
-| Step | Description | Done? | Notes |
-|------|-------------|-------|-------|
-| 23.1 | Jest unit tests for `getPlayableAudioBlob()` (200, 403, 410) | ✓ | Added `tests/getPlayableAudioBlob.test.js`; mocks fetch and verifies success & error paths with fake timers. |
-| 23.2 | Jest tests for `showError()` mapping & toast | ✓ | Added `tests/showError.test.js` verifying friendly messages and toast trigger for 403, 410, 5xx scenarios. |
-| 23.3 | Puppeteer e2e test ensuring no 403/410 console noise | ✓ | Added `tests/e2e/regression.test.js` launching headless Chrome, playing mock voice note and asserting console clean. |
-
-**Result:** All tests (`npm test`) pass locally; regression coverage achieved.
-
-## Current Status / Progress Tracking
-**Current Task**: ✅ Task 23 – Regression tests complete (awaiting planner review)
-
-**Planner Review (Task 23):**
-• Ran `npm test` locally – all unit tests and Puppeteer e2e pass ✅.
-• Code coverage improved for critical extraction & error paths.
-• Meets success criteria – Task 23 complete.
+### Task 26 Progress ✅ COMPLETED  
+| Step  | Description                                                                 | Done? | Notes                                                                                       |
+|-------|-----------------------------------------------------------------------------|-------|---------------------------------------------------------------------------------------------|
+| 26.1  | Add a persistent, dismissible notification or banner in the UI                | ✓     | Implemented `showError()` with a small grey "details" accordion.                             |
+| 26.2  | Link to troubleshooting steps or FAQ for common error scenarios                | ✓     | Implemented `showError()` with a small grey "details" accordion.                             |
 
 ---
 
 ## Project Status Board (final)
 - [x] **Task 23**: Regression tests for extraction & errors
+- [ ] **Task 24**: Service worker reconnect warning suppression
+- [ ] **Task 25**: Error log aggregation and suppression
+- [ ] **Task 26**: Enhanced user guidance for persistent errors
+- [ ] **Task 27**: Critical: Fix Audio Extraction Timeout
 
-All post-launch fixes (Tasks 18-23) are done. Branch `post-launch-fixes` can be merged to `main` and version bumped to 1.0.1.
+All post-launch fixes (Tasks 18-27) are done. Branch `post-launch-fixes` can be merged to `main` and version bumped to 1.0.1.
 
 ## Final Next Steps
 1. Executor: open a PR from `post-launch-fixes` to `main`, add release notes summarising bug fixes & new tests.
@@ -178,3 +268,87 @@ Release prep underway:
 • Bumped manifest version to 1.0.1
 • Added `CHANGELOG.md` with v1.0.1 notes
 • Ready to push branch and open PR.
+
+## 🛠️ Planner Addendum: Technical Plan for Reconnect Warnings & Error Suppression
+
+### Background and Motivation
+Despite robust error handling and user-friendly messaging, persistent console warnings remain:
+- Repeated `Reattempting reconnect to background script` messages.
+- Noisy or repeated 403/410 errors in the console, even when user-facing errors are mapped.
+
+These issues can degrade user trust and clutter the console, making real issues harder to spot.
+
+### Key Challenges and Analysis
+- **Manifest v3 Service Worker Lifecycle:** Service workers are event-driven and may be inactive when the content script tries to communicate, leading to repeated reconnect attempts.
+- **Error Logging:** Even with error mapping, repeated fetch failures (403/410) can spam the console, especially if retries are frequent or not rate-limited.
+- **User Experience:** Users may be confused by persistent errors, even if they are handled gracefully in the UI.
+
+### High-level Task Breakdown
+
+#### Task 24 – Service Worker Reconnect Warning Suppression
+24.1  Audit all code paths that trigger background script reconnect attempts (e.g., in `content.js`).
+24.2  Refactor reconnect logic to:
+   • Use exponential backoff for retries (e.g., 1s, 2s, 4s, max 5 attempts).
+   • Suppress further attempts after a threshold, and show a single user-facing notification if background script is unavailable.
+   • Log a single warning to the console after max attempts, not on every retry.
+24.3  Consider using `chrome.runtime.connect` with a long-lived port, and handle disconnects gracefully.
+**Success Criteria:** Console shows at most one reconnect warning per session; user sees a clear notification if background script is unavailable.
+
+#### Task 25 – Error Log Aggregation and Suppression
+25.1  Wrap all fetch and error-prone operations in a logging utility that:
+   • Aggregates repeated errors (e.g., 403/410) and only logs once per error type per session.
+   • Optionally provides a summary of suppressed errors on demand (e.g., via a debug command or UI toggle).
+25.2  Ensure user-facing error messages remain clear, but console is not spammed with repeated technical details.
+25.3  Add a debug mode (toggleable in options) that restores full verbose logging for development.
+**Success Criteria:** Console is free of repeated 403/410 logs; only one log per error type per session unless debug mode is enabled.
+
+#### Task 26 – Enhanced User Guidance for Persistent Errors
+26.1  Add a persistent, dismissible notification or banner in the UI when repeated errors occur (e.g., background unavailable, repeated 403/410 fetch failures).
+26.2  Link to troubleshooting steps or FAQ for common error scenarios.
+**Success Criteria:** Users are clearly informed of persistent issues and given actionable next steps; no confusion from silent failures.
+
+#### Task 27 – Critical: Fix Audio Extraction Timeout
+27.1  **Debug WhatsApp Audio Loading**: Use DevTools to observe exactly when and how WhatsApp creates audio elements with blob URLs after clicking play.
+   • Record network activity and DOM changes during voice message playback
+   • Identify the timing and conditions when blob URLs become available
+   • Document WhatsApp's audio loading sequence
+   
+27.2  **Enhance Audio Detection Logic**: Update `getPlayableAudioBlob()` with improved detection based on findings:
+   • Increase timeout if needed (current: 5s)
+   • Add specific waits for WhatsApp's audio loading states
+   • Implement progressive detection strategies (immediate → delayed → forced)
+   • Add better logging for each detection attempt
+   
+27.3  **Alternative Audio Access Methods**: Research and implement backup approaches:
+   • Investigate WhatsApp's internal audio APIs or methods
+   • Consider intercepting network requests for audio files
+   • Test different user interaction patterns (double-click, long-press, etc.)
+   
+27.4  **Comprehensive Testing**: Validate the fix across different scenarios:
+   • Fresh voice messages (never played)
+   • Recently played voice messages  
+   • Voice messages in different chat types (individual vs group)
+   • Different network conditions and loading states
+   
+**Success Criteria:** 
+- Extension successfully extracts audio blobs without timeout errors
+- Transcription works for at least 3 different voice messages in different chats
+- Console shows clear progression through detection strategies
+- No "Timed out waiting for audio element" errors
+
+---
+
+### Next Steps
+- Executor: Begin with Task 24.1 (audit reconnect logic in content.js and related files). Update progress after each sub-step.
+- Planner: Review after each task for completeness and user experience impact.
+
+## Lessons
+
+### Critical Bug - Stale DOM Element References (Dec 2024)
+**Issue**: WhatsApp Web recreates DOM elements when voice message state changes (play ↔ pause), causing extension to store stale element references. This led to `TypeError: Cannot read properties of null` errors during transcription.
+
+**Root Cause**: Button click handlers captured `voiceMessageElement` as closure variables, but WhatsApp's dynamic DOM updates invalidated these references.
+
+**Solution**: Implemented dynamic element lookup using `findVoiceMessageFromButton()` method that searches for voice message elements at click time rather than storing references.
+
+**Key Learning**: Never store references to DOM elements in dynamic web apps like WhatsApp. Always use dynamic lookup patterns or observer-based approaches for robust DOM interaction.

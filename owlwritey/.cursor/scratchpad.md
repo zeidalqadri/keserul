@@ -218,14 +218,16 @@ The `getPlayableAudioBlob()` function:
 | Step  | Description                                                                 | Done? | Notes                                                                                       |
 |-------|-----------------------------------------------------------------------------|-------|---------------------------------------------------------------------------------------------|
 | 27.1  | Debug WhatsApp Audio Loading: Use DevTools to observe audio element creation | ✅     | Enhanced getPlayableAudioBlob() with comprehensive debug logging. Ready for browser testing. |
-| 27.2  | Enhance Audio Detection Logic based on findings                             | ⏳     | Next step after analyzing debug output from browser                                        |
+| 27.2  | Enhance Audio Detection Logic based on findings | ✅     | **FIXED Element Reference**: Now returns message container instead of icon span. Updated detection strategies, increased timeout to 10s, added video element support. |
+| 27.3  | Alternative Audio Access Methods: Research backup approaches               | ⏳     | Next: Test the fixes and implement fallback methods if needed                               |
 
-**Step 27.1 COMPLETED**: 
-- Added comprehensive debug logging to `getPlayableAudioBlob()` function
-- Logs initial audio element state, click button interactions, and all 4 detection strategies
-- Tracks timing, DOM changes, and final state analysis
-- Enhanced with detailed element attributes and audio properties logging
-- Ready for real-world testing in Chrome extension environment
+**Step 27.2 COMPLETED**: 
+- **Fixed `findVoiceMessageFromButton()`**: Now returns message container (`div[data-testid*="message"]`) instead of voice icon `<span>`
+- **Enhanced Play Button Detection**: Searches within container, tries parent button elements, waits longer (1s) for WhatsApp processing
+- **Updated Detection Strategies**: All 4 strategies now search for both `audio` and `video` elements within container scope
+- **Increased Timeout**: Extended from 5s to 10s for debugging purposes
+- **Enhanced Logging**: Added container structure analysis, media element details, and comprehensive timeout reporting
+- **Added Video Support**: Extension now detects both `<audio>` and `<video>` elements as some browsers may use video tags for audio
 
 ---
 

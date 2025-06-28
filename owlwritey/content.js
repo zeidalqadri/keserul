@@ -649,10 +649,11 @@ class WhatsAppVoiceTranscriber {
     console.log('[OwlWritey DEBUG] Container innerHTML preview:', voiceMessageElement.innerHTML.substring(0, 200) + '...');
     
     // Snapshot initial state of all audio elements
-    const initialAudioElements = document.querySelectorAll('audio');
-    console.log('[OwlWritey DEBUG] Initial audio elements on page:', initialAudioElements.length);
+    const initialAudioElements = document.querySelectorAll('audio, video');
+    console.log('[OwlWritey DEBUG] Initial media elements on page:', initialAudioElements.length);
     initialAudioElements.forEach((audio, idx) => {
-      console.log(`[OwlWritey DEBUG] Initial audio[${idx}]:`, {
+      console.log(`[OwlWritey DEBUG] Initial media[${idx}]:`, {
+        tagName: audio.tagName,
         src: audio.src,
         currentSrc: audio.currentSrc,
         readyState: audio.readyState,
@@ -663,6 +664,39 @@ class WhatsAppVoiceTranscriber {
     
     const start = Date.now();
     
+    // ALTERNATIVE METHOD 1: Set up MutationObserver to detect newly inserted media elements
+    let mediaElementDetected = null;
+    const observer = new MutationObserver((mutations) => {
+      console.log('[OwlWritey DEBUG] DOM mutation detected, checking for new media elements...');
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check if the added node is a media element
+              if (node.tagName === 'AUDIO' || node.tagName === 'VIDEO') {
+                console.log('[OwlWritey DEBUG] MutationObserver: New media element detected!', node.tagName);
+                mediaElementDetected = node;
+              }
+              // Check if the added node contains media elements
+              const mediaInNode = node.querySelectorAll ? node.querySelectorAll('audio, video') : [];
+              if (mediaInNode.length > 0) {
+                console.log('[OwlWritey DEBUG] MutationObserver: Media elements found in added node:', mediaInNode.length);
+                mediaElementDetected = mediaInNode[0];
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    // Start observing the container for DOM changes
+    observer.observe(voiceMessageElement, {
+      childList: true,
+      subtree: true
+    });
+    
+    console.log('[OwlWritey DEBUG] MutationObserver set up to watch container for media elements');
+
     // 1. Try to find and click the play button to force WhatsApp to inject the audio element
     try {
       // Look for the actual play button (audio-play icon) within the container
@@ -677,21 +711,40 @@ class WhatsAppVoiceTranscriber {
         console.log('[OwlWritey DEBUG] Play button parent:', playButton.parentElement);
         console.log('[OwlWritey DEBUG] Clicking play button to activate audio...');
         
-        // Try clicking the button and also trigger any parent button elements
+        // ALTERNATIVE METHOD 2: Multiple click strategies
+        console.log('[OwlWritey DEBUG] Trying multiple click strategies...');
+        
+        // Strategy A: Direct click
         playButton.click();
         
-        // Also try clicking parent elements that might be the actual clickable area
+        // Strategy B: Dispatch click event
+        playButton.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        }));
+        
+        // Strategy C: Click parent button elements that might be the actual clickable area
         let parent = playButton.parentElement;
         let depth = 0;
         while (parent && depth < 3) {
           if (parent.tagName === 'BUTTON' || parent.getAttribute('role') === 'button') {
             console.log('[OwlWritey DEBUG] Also clicking parent button at depth', depth, ':', parent);
             parent.click();
+            parent.dispatchEvent(new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            }));
             break;
           }
           parent = parent.parentElement;
           depth++;
         }
+        
+        // Strategy D: Try mousedown/mouseup sequence
+        playButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        playButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
         
         // Wait longer for WhatsApp to process the click and load audio
         await new Promise(r => setTimeout(r, 1000));
@@ -721,20 +774,28 @@ class WhatsAppVoiceTranscriber {
     } catch (error) {
       console.log('[OwlWritey DEBUG] Could not click play button:', error.message);
     }
-
+    
     let attemptCount = 0;
     while (Date.now() - start < timeout) {
       attemptCount++;
       console.log(`[OwlWritey DEBUG] === Detection attempt ${attemptCount} (${Date.now() - start}ms elapsed) ===`);
       
-      // Search for audio/video elements in multiple locations (container-focused)
+      // Search for audio/video elements in multiple locations (container-focused + MutationObserver)
       let audioElement = null;
       
+      // Strategy 0: Check MutationObserver results first (PRIORITY)
+      if (mediaElementDetected) {
+        console.log('[OwlWritey DEBUG] Strategy 0 SUCCESS: Using MutationObserver detected element:', mediaElementDetected.tagName);
+        audioElement = mediaElementDetected;
+      }
+      
       // Strategy 1: Direct search within the container (most likely to succeed now)
-      console.log('[OwlWritey DEBUG] Strategy 1: Searching within container for audio/video...');
-      audioElement = voiceMessageElement.querySelector('audio') || voiceMessageElement.querySelector('video');
-      if (audioElement) {
-        console.log('[OwlWritey DEBUG] Strategy 1 SUCCESS: Found media element in container:', audioElement.tagName);
+      if (!audioElement) {
+        console.log('[OwlWritey DEBUG] Strategy 1: Searching within container for audio/video...');
+        audioElement = voiceMessageElement.querySelector('audio') || voiceMessageElement.querySelector('video');
+        if (audioElement) {
+          console.log('[OwlWritey DEBUG] Strategy 1 SUCCESS: Found media element in container:', audioElement.tagName);
+        }
       }
       
       // Strategy 2: Search all media elements within container (deeper search)
@@ -812,6 +873,7 @@ class WhatsAppVoiceTranscriber {
                 size: blob.size,
                 type: blob.type
               });
+              observer.disconnect(); // Clean up observer on success
               return blob;
             } catch (err) {
               console.error('[OwlWritey DEBUG] Failed to fetch blob:', err);
@@ -854,6 +916,10 @@ class WhatsAppVoiceTranscriber {
       await new Promise(r => setTimeout(r, 250));
     }
     
+    // Clean up MutationObserver
+    observer.disconnect();
+    console.error('[OwlWritey DEBUG] MutationObserver disconnected');
+    
     console.error('[OwlWritey DEBUG] === Timed out after', attemptCount, 'attempts ===');
     console.error('[OwlWritey DEBUG] Final state - all media elements:', document.querySelectorAll('audio, video').length);
     document.querySelectorAll('audio, video').forEach((media, idx) => {
@@ -872,6 +938,7 @@ class WhatsAppVoiceTranscriber {
     console.error('[OwlWritey DEBUG] - Media in container:', voiceMessageElement.querySelectorAll('audio, video').length);
     console.error('[OwlWritey DEBUG] - Buttons in container:', voiceMessageElement.querySelectorAll('button, [role="button"]').length);
     console.error('[OwlWritey DEBUG] - Icons in container:', voiceMessageElement.querySelectorAll('[data-icon]').length);
+    console.error('[OwlWritey DEBUG] - MutationObserver detected:', mediaElementDetected ? 'YES' : 'NO');
     
     throw new Error('Timed out waiting for audio element. Try playing the voice note once then transcribe again.');
   }

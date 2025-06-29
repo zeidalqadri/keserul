@@ -18,8 +18,7 @@
     {
       "matches": ["https://web.whatsapp.com/*"],
       "js": ["injectModuleRaid.js"],
-      "run_at": "document_start",
-      "world": "MAIN"
+      "run_at": "document_start"
     },
     {
       "matches": ["https://web.whatsapp.com/*"],

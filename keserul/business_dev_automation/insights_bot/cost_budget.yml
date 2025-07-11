@@ -1,0 +1,93 @@
+# McKinsey-Insights Bot Cost Budget Configuration
+
+# Global budget settings
+global:
+  max_budget_usd: 50.0  # Maximum total budget in USD
+  alert_threshold: 0.8   # Alert when budget reaches this percentage
+
+# Environment-specific budgets
+environments:
+  development:
+    max_budget_usd: 10.0
+    alert_threshold: 0.7
+    default_model: "gpt-4o"
+    models:
+      cheap: "gpt-3.5-turbo"
+      balanced: "gpt-4o"
+      powerful: "gpt-4-turbo"
+  
+  testing:
+    max_budget_usd: 5.0
+    alert_threshold: 0.8
+    default_model: "gpt-3.5-turbo"
+    models:
+      cheap: "gpt-3.5-turbo"
+      balanced: "gpt-3.5-turbo"
+      powerful: "gpt-4o"
+  
+  production:
+    max_budget_usd: 50.0
+    alert_threshold: 0.9
+    default_model: "gpt-4o"
+    models:
+      cheap: "gpt-3.5-turbo"
+      balanced: "gpt-4o"
+      powerful: "gpt-4-turbo"
+
+# Model-specific settings
+model_costs:
+  # OpenAI models (cost per 1K tokens in USD)
+  gpt-4o:
+    input: 0.005
+    output: 0.015
+  
+  gpt-4-turbo:
+    input: 0.01
+    output: 0.03
+  
+  gpt-4:
+    input: 0.03
+    output: 0.06
+  
+  gpt-3.5-turbo:
+    input: 0.0005
+    output: 0.0015
+  
+  # Local models (free)
+  local-llama:
+    input: 0.0
+    output: 0.0
+  
+  local-mistral:
+    input: 0.0
+    output: 0.0
+
+# Task complexity settings
+# These determine which model to use based on the task complexity
+task_complexity:
+  low:
+    description: "Simple tasks like formatting, summarization, or basic Q&A"
+    model: "cheap"
+    max_tokens: 1000
+  
+  medium:
+    description: "Standard analysis, slide generation, or market research"
+    model: "balanced"
+    max_tokens: 2000
+  
+  high:
+    description: "Complex strategic analysis, executive summaries, or recommendations"
+    model: "powerful"
+    max_tokens: 4000
+
+# Usage limits per deck generation
+per_deck_limits:
+  max_tokens: 25000  # Maximum tokens per deck generation
+  max_cost_usd: 0.75  # Maximum cost per deck in USD
+  max_api_calls: 15  # Maximum number of API calls per deck
+
+# Caching settings
+caching:
+  enabled: true
+  ttl_seconds: 86400  # Cache time-to-live (24 hours)
+  max_cache_size_mb: 100  # Maximum cache size in MB 

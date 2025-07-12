@@ -2,11 +2,12 @@
 
 import type React from "react"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
-import { Upload } from "lucide-react"
+import { Upload, ExternalLink, Download, Copy, AlertCircle } from "lucide-react"
 import Image from "next/image"
+import { rv0Api, type ProcessingOptions, type ProcessingResult } from "@/lib/api"
 
 interface ProgressState {
   phase: 1 | 2 | 3 | 4 | 5
@@ -16,6 +17,7 @@ interface ProgressState {
   currentOperation: string
   status: "idle" | "processing" | "complete" | "error" | "paused"
   errorMessage?: string
+  jobId?: string
 }
 
 interface ColorPalette {
@@ -24,17 +26,9 @@ interface ColorPalette {
   accuracy: number
 }
 
-interface ProcessingResult {
-  success: boolean
-  outputPath?: string
-  svgContent?: string
-  metrics?: {
-    processingTime: number
-    pathCount: number
-    colorCount: number
-    sizeReduction: number
-  }
-  error?: string
+interface BackendStatus {
+  status: "online" | "offline" | "checking"
+  version?: string
 }
 
 const CORE_PRESETS = [
@@ -79,14 +73,6 @@ const CORE_PRESETS = [
     color: "bauhaus-black",
   },
 ]
-
-const PROCESSING_PHASES = {
-  1: { name: "IMAGE ANALYSIS", range: [0, 20] },
-  2: { name: "COLOR QUANTIZATION", range: [20, 40] },
-  3: { name: "HOLE DETECTION", range: [40, 70] },
-  4: { name: "PATH GENERATION", range: [70, 90] },
-  5: { name: "SVG EXPORT", range: [90, 100] },
-}
 
 // Bauhaus Geometric Components
 const BauhausShape = ({
@@ -144,6 +130,7 @@ const BauhausDecoration = () => (
 export default function RV0VectorStudio() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>({ status: "checking" })
   const [progress, setProgress] = useState<ProgressState>({
     phase: 1,
     percentage: 0,
@@ -163,46 +150,96 @@ export default function RV0VectorStudio() {
   const [showLogs, setShowLogs] = useState<boolean>(false)
   const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null)
   const [svgPreview, setSvgPreview] = useState<string | null>(null)
+  const [logs, setLogs] = useState<string[]>([])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const statusCheckInterval = useRef<NodeJS.Timeout | null>(null)
+
+  // Check backend status on mount
+  useEffect(() => {
+    checkBackendStatus()
+  }, [])
+
+  const addLog = useCallback((message: string) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setLogs((prev) => [...prev, `[${timestamp}] ${message}`])
+  }, [])
+
+  const checkBackendStatus = useCallback(async () => {
+    try {
+      const status = await rv0Api.checkBackendStatus()
+      setBackendStatus(status)
+      addLog(`RV0: Backend ${status.status.toUpperCase()}${status.version ? ` (v${status.version})` : ""}`)
+    } catch (error) {
+      setBackendStatus({ status: "offline" })
+      addLog("RV0: Backend connection failed")
+    }
+  }, [addLog])
 
   const validateFile = (file: File): string | null => {
-    const maxSize = 2 * 1024 * 1024
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"]
+    const maxSize = 10 * 1024 * 1024 // 10MB for production
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
 
     if (!allowedTypes.includes(file.type)) {
-      return "UNSUPPORTED FORMAT. USE PNG OR JPG."
+      return "UNSUPPORTED FORMAT. USE PNG, JPG, OR WEBP."
     }
 
     if (file.size > maxSize) {
-      return "FILE TOO LARGE. MAX 2MB."
+      return "FILE TOO LARGE. MAX 10MB."
     }
 
     return null
   }
 
-  const handleFileUpload = useCallback((file: File) => {
-    const error = validateFile(file)
-    if (error) {
-      setProgress((prev) => ({ ...prev, status: "error", errorMessage: error }))
-      return
-    }
+  const analyzeColors = useCallback(
+    async (file: File) => {
+      try {
+        addLog("RV0: Analyzing image colors...")
+        const analysis = await rv0Api.analyzeColors(file)
+        setColorPalette({
+          detectedColors: analysis.colors,
+          brandColors: analysis.colors.slice(0, 2), // Auto-select first 2 as brand colors
+          accuracy: analysis.accuracy,
+        })
+        addLog(`RV0: Detected ${analysis.colors.length} dominant colors (${analysis.accuracy}% accuracy)`)
+      } catch (error) {
+        addLog(`RV0: Color analysis failed - ${error}`)
+        // Fallback to basic colors if API fails
+        const fallbackColors = ["#e53e3e", "#3182ce", "#d69e2e", "#1a1a1a", "#ffffff"]
+        setColorPalette({
+          detectedColors: fallbackColors,
+          brandColors: fallbackColors.slice(0, 2),
+          accuracy: 85,
+        })
+      }
+    },
+    [addLog],
+  )
 
-    setUploadedFile(file)
-    setProgress((prev) => ({ ...prev, status: "idle", errorMessage: undefined }))
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      const error = validateFile(file)
+      if (error) {
+        setProgress((prev) => ({ ...prev, status: "error", errorMessage: error }))
+        return
+      }
 
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string)
-      const mockColors = ["#e53e3e", "#3182ce", "#d69e2e", "#1a1a1a", "#ffffff"]
-      setColorPalette({
-        detectedColors: mockColors,
-        brandColors: ["#e53e3e", "#3182ce"],
-        accuracy: 99,
-      })
-    }
-    reader.readAsDataURL(file)
-  }, [])
+      setUploadedFile(file)
+      setProgress((prev) => ({ ...prev, status: "idle", errorMessage: undefined }))
+      addLog(`RV0: Image loaded - ${file.name} (${Math.round(file.size / 1024)}KB)`)
+
+      // Create preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      // Analyze colors
+      await analyzeColors(file)
+    },
+    [addLog, analyzeColors],
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -219,95 +256,161 @@ export default function RV0VectorStudio() {
     [handleFileUpload],
   )
 
-  const startProcessing = useCallback(async () => {
-    if (!uploadedFile) return
+  const pollProcessingStatus = useCallback(
+    async (jobId: string) => {
+      const startTime = Date.now()
 
-    setProgress((prev) => ({ ...prev, status: "processing" }))
-    setProcessingResult(null)
-    setSvgPreview(null)
+      const poll = async () => {
+        try {
+          const status = await rv0Api.getProcessingStatus(jobId)
+          const elapsed = Date.now() - startTime
 
-    let currentPhase = 1
-    let currentProgress = 0
-    const startTime = Date.now()
+          setProgress((prev) => ({
+            ...prev,
+            phase: status.phase as any,
+            percentage: status.percentage,
+            elapsedTime: elapsed,
+            estimatedTotal: status.estimatedTotal || 0,
+            currentOperation: status.currentOperation,
+            status: status.status === "complete" ? "complete" : status.status === "error" ? "error" : "processing",
+            errorMessage: status.error,
+          }))
 
-    const baseTime = Math.min(uploadedFile.size / (100 * 1024), 30)
-    const complexityMultiplier = colorCount / 16
-    const estimatedTime = baseTime * complexityMultiplier * 1000
+          addLog(`RV0: ${status.currentOperation} (${status.percentage}%)`)
 
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime
-      const progressRate = Math.random() * 2 + 0.5
-      currentProgress += progressRate
+          if (status.status === "complete") {
+            // Get final result
+            const result = await rv0Api.getResult(jobId)
+            setProcessingResult(result)
 
-      const currentPhaseData = PROCESSING_PHASES[currentPhase as keyof typeof PROCESSING_PHASES]
+            if (result.svgContent) {
+              setSvgPreview(result.svgContent)
+            }
 
-      if (currentProgress >= currentPhaseData.range[1]) {
-        currentPhase++
-        if (currentPhase > 5) {
-          clearInterval(interval)
+            addLog(
+              `RV0: ✓ Processing complete - ${result.metrics?.pathCount} paths, ${result.metrics?.colorCount} colors`,
+            )
 
-          const finalMetrics = {
-            processingTime: Date.now() - startTime,
-            pathCount: Math.floor(Math.random() * 500) + 200,
-            colorCount: colorCount,
-            sizeReduction: Math.floor(Math.random() * 30) + 50,
+            if (statusCheckInterval.current) {
+              clearInterval(statusCheckInterval.current)
+            }
+          } else if (status.status === "error") {
+            addLog(`RV0: ✗ Processing failed - ${status.error}`)
+            if (statusCheckInterval.current) {
+              clearInterval(statusCheckInterval.current)
+            }
           }
-
-          setProcessingResult({
-            success: true,
-            outputPath: `vectorized/${uploadedFile.name.replace(/\.[^/.]+$/, ".svg")}`,
-            metrics: finalMetrics,
-          })
-
-          setSvgPreview(`<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <rect x="50" y="50" width="100" height="100" fill="#e53e3e"/>
-            <circle cx="100" cy="100" r="30" fill="#3182ce"/>
-            <polygon points="100,70 120,110 80,110" fill="#d69e2e"/>
-          </svg>`)
-
-          setProgress({
-            phase: 5,
-            percentage: 100,
-            elapsedTime: Date.now() - startTime,
-            estimatedTotal: Date.now() - startTime,
-            currentOperation: "✓ COMPLETE",
-            status: "complete",
-          })
-          return
+        } catch (error) {
+          addLog(`RV0: Status check failed - ${error}`)
+          setProgress((prev) => ({
+            ...prev,
+            status: "error",
+            errorMessage: `Connection lost: ${error}`,
+          }))
+          if (statusCheckInterval.current) {
+            clearInterval(statusCheckInterval.current)
+          }
         }
       }
 
-      const phaseOperations = {
-        1: "ANALYZING...",
-        2: "QUANTIZING...",
-        3: "DETECTING HOLES...",
-        4: "GENERATING PATHS...",
-        5: "OPTIMIZING...",
+      // Poll every 1 second
+      statusCheckInterval.current = setInterval(poll, 1000)
+      poll() // Initial check
+    },
+    [addLog],
+  )
+
+  const startProcessing = useCallback(async () => {
+    if (!uploadedFile || backendStatus.status !== "online") {
+      setProgress((prev) => ({
+        ...prev,
+        status: "error",
+        errorMessage: "Backend offline or no file selected",
+      }))
+      return
+    }
+
+    try {
+      setProgress((prev) => ({ ...prev, status: "processing", percentage: 0 }))
+      setProcessingResult(null)
+      setSvgPreview(null)
+
+      addLog("RV0: Starting vectorization...")
+
+      const options: ProcessingOptions = {
+        preset: selectedPreset,
+        colors: colorCount,
+        scale: scaleMultiplier,
+        brandColors: colorPalette.brandColors.length > 0 ? colorPalette.brandColors : undefined,
       }
 
-      setProgress({
-        phase: currentPhase as any,
-        percentage: Math.min(currentProgress, 100),
-        elapsedTime: elapsed,
-        estimatedTotal: estimatedTime,
-        currentOperation: phaseOperations[currentPhase as keyof typeof phaseOperations],
-        status: "processing",
-      })
-    }, 150)
-  }, [uploadedFile, colorCount])
+      const { jobId } = await rv0Api.uploadAndProcess(uploadedFile, options)
+
+      setProgress((prev) => ({ ...prev, jobId }))
+      addLog(`RV0: Job queued - ID: ${jobId}`)
+
+      // Start polling for status
+      await pollProcessingStatus(jobId)
+    } catch (error) {
+      addLog(`RV0: Upload failed - ${error}`)
+      setProgress((prev) => ({
+        ...prev,
+        status: "error",
+        errorMessage: `Upload failed: ${error}`,
+      }))
+    }
+  }, [
+    uploadedFile,
+    backendStatus.status,
+    selectedPreset,
+    colorCount,
+    scaleMultiplier,
+    colorPalette.brandColors,
+    addLog,
+    pollProcessingStatus,
+  ])
+
+  const downloadSvg = useCallback(async () => {
+    if (!progress.jobId) return
+
+    try {
+      addLog("RV0: Downloading SVG...")
+      const blob = await rv0Api.downloadSvg(progress.jobId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${uploadedFile?.name.replace(/\.[^/.]+$/, "") || "vectorized"}.svg`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      addLog("RV0: ✓ Download complete")
+    } catch (error) {
+      addLog(`RV0: Download failed - ${error}`)
+    }
+  }, [progress.jobId, uploadedFile?.name, addLog])
 
   const generateCommand = useCallback(() => {
-    if (!uploadedFile) return "python3 imagetracer.py input.png output.svg --preset color_perfect"
+    if (!uploadedFile) return "# Upload a file to generate API command"
 
-    const inputName = uploadedFile.name
-    const outputName = inputName.replace(/\.[^/.]+$/, ".svg")
+    const options: ProcessingOptions = {
+      preset: selectedPreset,
+      colors: colorCount,
+      scale: scaleMultiplier,
+      brandColors: colorPalette.brandColors.length > 0 ? colorPalette.brandColors : undefined,
+    }
 
-    return `python3 imagetracer.py ${inputName} ${outputName} --preset ${selectedPreset} --colors ${colorCount} --scale ${scaleMultiplier}`
-  }, [uploadedFile, selectedPreset, colorCount, scaleMultiplier])
+    return rv0Api.generateCurlCommand(uploadedFile, options)
+  }, [uploadedFile, selectedPreset, colorCount, scaleMultiplier, colorPalette.brandColors])
 
   const copyCommand = useCallback(() => {
     navigator.clipboard.writeText(generateCommand())
-  }, [generateCommand])
+    addLog("RV0: Command copied to clipboard")
+  }, [generateCommand, addLog])
+
+  const openApiDocs = useCallback(() => {
+    window.open(rv0Api.getApiDocumentation(), "_blank")
+  }, [])
 
   const formatTime = (ms: number) => {
     const seconds = Math.floor(ms / 1000)
@@ -315,7 +418,14 @@ export default function RV0VectorStudio() {
     return minutes > 0 ? `${minutes}M ${seconds % 60}S` : `${seconds}S`
   }
 
-  const selectedPresetData = CORE_PRESETS.find((p) => p.id === selectedPreset) || CORE_PRESETS[0]
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (statusCheckInterval.current) {
+        clearInterval(statusCheckInterval.current)
+      }
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-bauhaus-gray font-bauhaus relative">
@@ -331,17 +441,55 @@ export default function RV0VectorStudio() {
               </div>
               <div>
                 <h1 className="bauhaus-title text-2xl text-bauhaus-black">VECTOR STUDIO</h1>
+                <p className="text-xs text-bauhaus-black opacity-70">PRODUCTION API INTEGRATION</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-bauhaus-black text-white px-3 py-1">
-                <BauhausShape type="circle" color="white" size="w-2 h-2" />
-                <span className="text-xs font-bold">READY</span>
+              <div
+                className={`flex items-center gap-2 px-3 py-1 ${
+                  backendStatus.status === "online"
+                    ? "bg-bauhaus-black text-white"
+                    : backendStatus.status === "offline"
+                      ? "bg-bauhaus-red text-white"
+                      : "bg-bauhaus-yellow text-bauhaus-black"
+                }`}
+              >
+                <BauhausShape
+                  type="circle"
+                  color={backendStatus.status === "online" ? "white" : "white"}
+                  size="w-2 h-2"
+                />
+                <span className="text-xs font-bold">
+                  {backendStatus.status.toUpperCase()}
+                  {backendStatus.version && ` v${backendStatus.version}`}
+                </span>
               </div>
+              <button className="bauhaus-button text-xs" onClick={openApiDocs} title="Open API documentation">
+                <ExternalLink className="w-3 h-3" />
+                API
+              </button>
             </div>
           </div>
           <BauhausShape type="square" color="red" size="w-4 h-4" className="absolute top-3 right-3" />
         </div>
+
+        {/* Backend Offline Warning */}
+        {backendStatus.status === "offline" && (
+          <div className="bauhaus-card bg-bauhaus-red text-white p-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5" />
+              <div>
+                <div className="font-bold">BACKEND OFFLINE</div>
+                <div className="text-xs opacity-90">
+                  Cannot connect to production API. Check network connection or try again later.
+                </div>
+              </div>
+              <button className="bauhaus-button text-xs ml-auto" onClick={checkBackendStatus}>
+                RETRY
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Upload */}
         <div
@@ -349,7 +497,7 @@ export default function RV0VectorStudio() {
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          title="Drag & drop images here or click to browse. Supports PNG, JPG. Max 2MB."
+          title="Drag & drop images here or click to browse. Supports PNG, JPG, WEBP. Max 10MB."
         >
           <div className="w-12 h-12 bg-bauhaus-black mx-auto mb-3 flex items-center justify-center">
             <Upload className="h-6 w-6 text-white" />
@@ -363,7 +511,7 @@ export default function RV0VectorStudio() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/jpg"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0]
@@ -375,7 +523,10 @@ export default function RV0VectorStudio() {
         {/* Error */}
         {progress.status === "error" && progress.errorMessage && (
           <div className="bauhaus-card bg-bauhaus-red text-white p-3">
-            <span className="font-bold">{progress.errorMessage}</span>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              <span className="font-bold">{progress.errorMessage}</span>
+            </div>
           </div>
         )}
 
@@ -384,9 +535,12 @@ export default function RV0VectorStudio() {
           <div className="bauhaus-card p-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="bauhaus-title text-sm">PROGRESS</span>
+                <span className="bauhaus-title text-sm">
+                  PROGRESS {progress.jobId && `(${progress.jobId.slice(0, 8)}...)`}
+                </span>
                 <span className="text-xs">
                   {progress.percentage.toFixed(0)}% | {formatTime(progress.elapsedTime)}
+                  {progress.estimatedTotal > 0 && ` / ~${formatTime(progress.estimatedTotal)}`}
                 </span>
               </div>
 
@@ -398,7 +552,7 @@ export default function RV0VectorStudio() {
                   ></div>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-xs text-bauhaus-black font-bold mix-blend-difference">
-                      {PROCESSING_PHASES[progress.phase].name}
+                      PHASE {progress.phase}
                     </span>
                   </div>
                 </div>
@@ -416,20 +570,11 @@ export default function RV0VectorStudio() {
 
               {showLogs && (
                 <div className="bg-bauhaus-black text-white p-3 font-mono text-xs space-y-1 max-h-32 overflow-y-auto">
-                  <div>
-                    [{new Date().toLocaleTimeString()}] RV0: PROCESSING {uploadedFile?.name}
-                  </div>
-                  <div>
-                    [{new Date().toLocaleTimeString()}] RV0: {colorPalette.detectedColors.length} COLORS DETECTED
-                  </div>
-                  <div className="text-bauhaus-yellow">
-                    [{new Date().toLocaleTimeString()}] RV0: LAB CONVERSION COMPLETE
-                  </div>
-                  {progress.status === "complete" && (
-                    <div className="text-bauhaus-yellow">
-                      [{new Date().toLocaleTimeString()}] RV0: ✓ EXPORT COMPLETE
+                  {logs.slice(-10).map((log, i) => (
+                    <div key={i} className={log.includes("✓") ? "text-bauhaus-yellow" : ""}>
+                      {log}
                     </div>
-                  )}
+                  ))}
                 </div>
               )}
             </div>
@@ -439,7 +584,7 @@ export default function RV0VectorStudio() {
         {/* Colors */}
         {colorPalette.detectedColors.length > 0 && (
           <div className="bauhaus-card p-4 relative">
-            <h3 className="bauhaus-title text-sm mb-4">COLORS</h3>
+            <h3 className="bauhaus-title text-sm mb-4">COLORS ({colorPalette.accuracy}% LAB ACCURACY)</h3>
             <div className="space-y-4">
               <div>
                 <label className="text-xs block mb-2" title="Auto-detected dominant colors from your image">
@@ -622,6 +767,10 @@ export default function RV0VectorStudio() {
                     <div>PATHS: {processingResult.metrics.pathCount}</div>
                     <div>COLORS: {processingResult.metrics.colorCount}</div>
                     <div>REDUCTION: {processingResult.metrics.sizeReduction}%</div>
+                    <div className="text-bauhaus-blue">
+                      {Math.round(processingResult.metrics.originalSize / 1024)}KB →{" "}
+                      {Math.round(processingResult.metrics.outputSize / 1024)}KB
+                    </div>
                   </div>
                 ) : (
                   <div className="text-xs text-bauhaus-black opacity-70">PENDING</div>
@@ -629,7 +778,7 @@ export default function RV0VectorStudio() {
               </div>
             </div>
 
-            {progress.status === "idle" && uploadedFile && (
+            {progress.status === "idle" && uploadedFile && backendStatus.status === "online" && (
               <div className="mt-6 text-center">
                 <button
                   onClick={startProcessing}
@@ -643,24 +792,45 @@ export default function RV0VectorStudio() {
           </div>
         )}
 
-        {/* Command */}
+        {/* Command & Export */}
         <div className="bauhaus-card p-4">
-          <h3 className="bauhaus-title text-sm mb-3">COMMAND</h3>
+          <h3 className="bauhaus-title text-sm mb-3">API COMMAND</h3>
           <div className="bg-bauhaus-black text-white p-3 font-mono text-xs overflow-x-auto mb-3">
             <pre>{generateCommand()}</pre>
           </div>
-          <div className="flex gap-3">
-            <button className="bauhaus-button text-xs" onClick={copyCommand} title="Copy command to clipboard">
+          <div className="flex gap-3 flex-wrap">
+            <button className="bauhaus-button text-xs" onClick={copyCommand} title="Copy cURL command to clipboard">
+              <Copy className="w-3 h-3" />
               COPY
             </button>
             <button
               className="bauhaus-button bauhaus-button-blue text-xs"
               disabled={!processingResult?.success}
+              onClick={downloadSvg}
               title="Download vectorized SVG file"
             >
+              <Download className="w-3 h-3" />
               DOWNLOAD
             </button>
+            <button
+              className="bauhaus-button bauhaus-button-yellow text-xs"
+              onClick={openApiDocs}
+              title="Open API documentation"
+            >
+              <ExternalLink className="w-3 h-3" />
+              DOCS
+            </button>
           </div>
+
+          {processingResult?.success && (
+            <div className="bg-bauhaus-yellow text-bauhaus-black p-3 mt-4 relative">
+              <BauhausShape type="square" color="red" size="w-3 h-3" className="absolute top-2 right-2" />
+              <div className="text-sm font-bold">✓ VECTORIZATION COMPLETE!</div>
+              <div className="text-xs mt-1">
+                Job ID: {progress.jobId} | Output: {processingResult.outputPath || "Ready for download"}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

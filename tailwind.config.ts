@@ -53,19 +53,32 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        rv0: {
-          blue: "#2196f3",
-          cyan: "#00bcd4",
-          "blue-light": "#4fc3f7",
-          "cyan-light": "#4dd0e1",
-          "blue-dark": "#1976d2",
-          "cyan-dark": "#0097a7",
+        bauhaus: {
+          red: "#e53e3e",
+          blue: "#3182ce",
+          yellow: "#d69e2e",
+          black: "#1a1a1a",
+          white: "#ffffff",
+          gray: "#f5f5f5",
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "0px",
+        md: "0px",
+        sm: "0px",
+      },
+      fontFamily: {
+        bauhaus: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Oxygen",
+          "Ubuntu",
+          "Cantarell",
+          "sans-serif",
+        ],
       },
       keyframes: {
         "accordion-down": {
@@ -76,10 +89,20 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "bauhaus-rotate": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+        "bauhaus-slide": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "bauhaus-rotate": "bauhaus-rotate 20s linear infinite",
+        "bauhaus-slide": "bauhaus-slide 3s ease-in-out infinite",
       },
     },
   },

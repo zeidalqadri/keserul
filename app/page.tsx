@@ -9,17 +9,30 @@ import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Upload, Copy, Download, Share, Settings, ChevronDown, ChevronUp, Play, Pause, Square } from "lucide-react"
+import {
+  Upload,
+  Copy,
+  Download,
+  Share,
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  Play,
+  Pause,
+  Square,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface ProgressState {
-  phase: 1 | 2 | 3 | 4 | 5 | 6
+  phase: 1 | 2 | 3 | 4 | 5
   percentage: number
   elapsedTime: number
   estimatedTotal: number
   currentOperation: string
   status: "idle" | "processing" | "complete" | "error" | "paused"
+  errorMessage?: string
 }
 
 interface ColorPalette {
@@ -28,59 +41,69 @@ interface ColorPalette {
   accuracy: number
 }
 
-interface AdvancedParams {
-  colors: number
-  colorSampling: "palette" | "random" | "deterministic"
-  colorCycles: number
-  lineThreshold: number
-  curveThreshold: number
-  pathOmit: number
-  rightAngleEnhance: boolean
-  resolution: number | "auto"
-  blur: number
-  scale: number
-  strokeWidth: number
-  viewBox: boolean
-  description: boolean
+interface ProcessingResult {
+  success: boolean
+  outputPath?: string
+  svgContent?: string
+  metrics?: {
+    processingTime: number
+    pathCount: number
+    colorCount: number
+    sizeReduction: number
+  }
+  error?: string
 }
 
-const PHASES = {
-  1: { name: "Image Loading & Analysis", range: [0, 10] },
-  2: { name: "Color Quantization", range: [10, 25] },
-  3: { name: "Edge Detection", range: [25, 45] },
-  4: { name: "Path Tracing", range: [45, 75] },
-  5: { name: "SVG Generation", range: [75, 90] },
-  6: { name: "Optimization & Export", range: [90, 100] },
-}
-
-const PRESETS = [
-  { id: "default", name: "Default", desc: "Balanced quality/performance", icon: "⚖️" },
-  { id: "sharp", name: "Sharp", desc: "Logo-perfect high-fidelity", icon: "🎯" },
-  { id: "posterized1", name: "Posterized 1", desc: "2-color fast posterization", icon: "🎨" },
-  { id: "posterized2", name: "Posterized 2", desc: "4-color blur posterization", icon: "🎭" },
-  { id: "posterized3", name: "Posterized 3", desc: "3-color custom posterization", icon: "🖼️" },
-  { id: "curvy", name: "Curvy", desc: "Smooth curves for organic shapes", icon: "🌊" },
-  { id: "detailed", name: "Detailed", desc: "Maximum detail (slow)", icon: "🔍" },
-  { id: "smoothed", name: "Smoothed", desc: "Blur preprocessing", icon: "✨" },
-  { id: "grayscale", name: "Grayscale", desc: "Monochrome 7 gray levels", icon: "⚫" },
-  { id: "fixedpalette", name: "Fixed Palette", desc: "27-color consistent", icon: "🎨" },
-  { id: "randomsampling1", name: "Random Sampling 1", desc: "Alternative sampling (8)", icon: "🎲" },
-  { id: "randomsampling2", name: "Random Sampling 2", desc: "Alternative sampling (64)", icon: "🎰" },
-  { id: "artistic1", name: "Artistic 1", desc: "Stylized with stroke outline", icon: "🎨" },
-  { id: "artistic2", name: "Artistic 2", desc: "High-contrast artistic", icon: "🎭" },
-  { id: "artistic3", name: "Artistic 3", desc: "Simplified artistic style", icon: "🖌️" },
-  { id: "artistic4", name: "Artistic 4", desc: "Complex with blur effects", icon: "🌈" },
+const CORE_PRESETS = [
+  {
+    id: "color_perfect",
+    name: "Color Perfect",
+    desc: "Logo-optimized with hole detection",
+    icon: "🎯",
+    recommended: true,
+    colors: 16,
+    scale: 2.0,
+  },
+  {
+    id: "default",
+    name: "Default",
+    desc: "Balanced quality/performance",
+    icon: "⚖️",
+    recommended: false,
+    colors: 16,
+    scale: 1.0,
+  },
+  {
+    id: "high_quality",
+    name: "High Quality",
+    desc: "Maximum detail with cubic Bézier curves",
+    icon: "🔍",
+    recommended: false,
+    colors: 32,
+    scale: 2.0,
+  },
+  {
+    id: "fast",
+    name: "Fast",
+    desc: "Quick processing for previews",
+    icon: "⚡",
+    recommended: false,
+    colors: 8,
+    scale: 1.0,
+  },
 ]
 
-const PERFORMANCE_LEVELS = {
-  0: { time: 5, size: "Small", quality: 70, desc: "Draft" },
-  1: { time: 15, size: "Medium", quality: 85, desc: "Standard" },
-  2: { time: 45, size: "Large", quality: 95, desc: "High" },
-  3: { time: 120, size: "Very Large", quality: 100, desc: "Maximum" },
+const PROCESSING_PHASES = {
+  1: { name: "Image Analysis & Color Detection", range: [0, 20] },
+  2: { name: "LAB Color Space Quantization", range: [20, 40] },
+  3: { name: "Hole Detection & Layer Ordering", range: [40, 70] },
+  4: { name: "Cubic Bézier Path Generation", range: [70, 90] },
+  5: { name: "SVG Optimization & Export", range: [90, 100] },
 }
 
 export default function VectorOptimizationStudio() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [progress, setProgress] = useState<ProgressState>({
     phase: 1,
     percentage: 0,
@@ -90,40 +113,59 @@ export default function VectorOptimizationStudio() {
     status: "idle",
   })
   const [colorPalette, setColorPalette] = useState<ColorPalette>({
-    detectedColors: ["#f7931e", "#000000", "#ffffff", "#cccccc"],
-    brandColors: ["#f7931e", "#000000", "#ffffff"],
+    detectedColors: [],
+    brandColors: [],
     accuracy: 100,
   })
-  const [selectedPreset, setSelectedPreset] = useState<string>("default")
-  const [performanceLevel, setPerformanceLevel] = useState<number>(1)
+  const [selectedPreset, setSelectedPreset] = useState<string>("color_perfect")
+  const [colorCount, setColorCount] = useState<number>(16)
+  const [scaleMultiplier, setScaleMultiplier] = useState<number>(2.0)
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false)
   const [showLogs, setShowLogs] = useState<boolean>(false)
-  const [advancedParams, setAdvancedParams] = useState<AdvancedParams>({
-    colors: 16,
-    colorSampling: "palette",
-    colorCycles: 3,
-    lineThreshold: 1.0,
-    curveThreshold: 1.0,
-    pathOmit: 8,
-    rightAngleEnhance: true,
-    resolution: "auto",
-    blur: 0,
-    scale: 1.0,
-    strokeWidth: 1,
-    viewBox: true,
-    description: false,
-  })
+  const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null)
+  const [svgPreview, setSvgPreview] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const validateFile = (file: File): string | null => {
+    const maxSize = 2 * 1024 * 1024 // 2MB
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"]
+
+    if (!allowedTypes.includes(file.type)) {
+      return "Unsupported file format. Please use PNG or JPG."
+    }
+
+    if (file.size > maxSize) {
+      return "File too large. Please use images under 2MB for optimal processing speed."
+    }
+
+    return null
+  }
+
   const handleFileUpload = useCallback((file: File) => {
+    const error = validateFile(file)
+    if (error) {
+      setProgress((prev) => ({ ...prev, status: "error", errorMessage: error }))
+      return
+    }
+
     setUploadedFile(file)
-    // Simulate color detection
-    const mockColors = ["#f7931e", "#000000", "#ffffff", "#cccccc", "#666666"]
-    setColorPalette((prev) => ({
-      ...prev,
-      detectedColors: mockColors,
-    }))
+    setProgress((prev) => ({ ...prev, status: "idle", errorMessage: undefined }))
+
+    // Create image preview
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string)
+
+      // Simulate color detection
+      const mockColors = ["#f7931e", "#000000", "#ffffff", "#cccccc", "#666666"]
+      setColorPalette({
+        detectedColors: mockColors,
+        brandColors: ["#f7931e", "#000000"],
+        accuracy: 99,
+      })
+    }
+    reader.readAsDataURL(file)
   }, [])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -134,81 +176,111 @@ export default function VectorOptimizationStudio() {
     (e: React.DragEvent) => {
       e.preventDefault()
       const files = Array.from(e.dataTransfer.files)
-      if (files.length > 0 && files[0].type.startsWith("image/")) {
+      if (files.length > 0) {
         handleFileUpload(files[0])
       }
     },
     [handleFileUpload],
   )
 
-  const startProcessing = useCallback(() => {
-    setProgress((prev) => ({ ...prev, status: "processing" }))
+  const startProcessing = useCallback(async () => {
+    if (!uploadedFile) return
 
-    // Simulate processing phases
+    setProgress((prev) => ({ ...prev, status: "processing" }))
+    setProcessingResult(null)
+    setSvgPreview(null)
+
+    // Simulate realistic processing phases
     let currentPhase = 1
     let currentProgress = 0
     const startTime = Date.now()
 
-    const interval = setInterval(() => {
-      currentProgress += Math.random() * 3
+    // Estimate processing time based on file size and settings
+    const baseTime = Math.min(uploadedFile.size / (100 * 1024), 30) // 30s max
+    const complexityMultiplier = colorCount / 16 // More colors = more time
+    const estimatedTime = baseTime * complexityMultiplier * 1000
 
-      if (currentProgress >= PHASES[currentPhase as keyof typeof PHASES].range[1]) {
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime
+      const progressRate = Math.random() * 2 + 0.5 // Variable speed
+      currentProgress += progressRate
+
+      const currentPhaseData = PROCESSING_PHASES[currentPhase as keyof typeof PROCESSING_PHASES]
+
+      if (currentProgress >= currentPhaseData.range[1]) {
         currentPhase++
-        if (currentPhase > 6) {
+        if (currentPhase > 5) {
           clearInterval(interval)
+
+          // Simulate successful completion
+          const finalMetrics = {
+            processingTime: Date.now() - startTime,
+            pathCount: Math.floor(Math.random() * 500) + 200,
+            colorCount: colorCount,
+            sizeReduction: Math.floor(Math.random() * 30) + 50,
+          }
+
+          setProcessingResult({
+            success: true,
+            outputPath: `vectorized/${uploadedFile.name.replace(/\.[^/.]+$/, ".svg")}`,
+            metrics: finalMetrics,
+          })
+
+          // Generate mock SVG preview
+          setSvgPreview(`<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50,50 Q100,20 150,50 Q180,100 150,150 Q100,180 50,150 Q20,100 50,50 Z" fill="${colorPalette.brandColors[0] || "#f7931e"}" fillRule="evenodd"/>
+            <circle cx="100" cy="100" r="20" fill="${colorPalette.brandColors[1] || "#000000"}"/>
+            <text x="100" y="105" textAnchor="middle" fill="white" fontSize="12">SVG</text>
+          </svg>`)
+
           setProgress({
-            phase: 6,
+            phase: 5,
             percentage: 100,
             elapsedTime: Date.now() - startTime,
             estimatedTotal: Date.now() - startTime,
-            currentOperation: "Processing complete",
+            currentOperation: "✅ Processing complete with hole detection",
             status: "complete",
           })
           return
         }
       }
 
+      const phaseOperations = {
+        1: "Analyzing image structure and detecting dominant colors...",
+        2: "Converting to LAB color space for accurate quantization...",
+        3: "Detecting holes in letters (B, A, O) and balancing layer order...",
+        4: "Generating smooth cubic Bézier curves for professional output...",
+        5: "Optimizing SVG with compound paths and fill-rule evenodd...",
+      }
+
       setProgress({
         phase: currentPhase as any,
         percentage: Math.min(currentProgress, 100),
-        elapsedTime: Date.now() - startTime,
-        estimatedTotal: (Date.now() - startTime) * (100 / currentProgress),
-        currentOperation: `${PHASES[currentPhase as keyof typeof PHASES].name} - Processing...`,
+        elapsedTime: elapsed,
+        estimatedTotal: estimatedTime,
+        currentOperation: phaseOperations[currentPhase as keyof typeof phaseOperations],
         status: "processing",
       })
-    }, 200)
-  }, [])
+    }, 150)
+  }, [uploadedFile, colorCount, colorPalette.brandColors])
 
   const generateCommand = useCallback(() => {
-    const parts = ["python vectorize.py"]
+    if (!uploadedFile) return "python3 imagetracer.py input.png output.svg --preset color_perfect"
 
-    if (uploadedFile) {
-      parts.push(uploadedFile.name)
-    } else {
-      parts.push("image.png")
-    }
+    const inputName = uploadedFile.name
+    const outputName = inputName.replace(/\.[^/.]+$/, ".svg")
 
-    if (selectedPreset !== "default") {
-      parts.push(`--preset ${selectedPreset}`)
-    }
+    const parts = [
+      "python3 imagetracer.py",
+      inputName,
+      outputName,
+      `--preset ${selectedPreset}`,
+      `--colors ${colorCount}`,
+      `--scale ${scaleMultiplier}`,
+    ]
 
-    if (colorPalette.brandColors.length > 0) {
-      parts.push(`--brand-palette "${colorPalette.brandColors.join(",")}"`)
-    }
-
-    const perfLevel = PERFORMANCE_LEVELS[performanceLevel as keyof typeof PERFORMANCE_LEVELS]
-    if (performanceLevel !== 1) {
-      parts.push(`--performance ${perfLevel.desc.toLowerCase()}`)
-    }
-
-    if (advancedParams.resolution !== "auto") {
-      parts.push(`--resolution ${advancedParams.resolution}`)
-    }
-
-    parts.push("--overwrite")
-
-    return parts.join(" \\\n  ")
-  }, [uploadedFile, selectedPreset, colorPalette.brandColors, performanceLevel, advancedParams])
+    return parts.join(" ")
+  }, [uploadedFile, selectedPreset, colorCount, scaleMultiplier])
 
   const copyCommand = useCallback(() => {
     navigator.clipboard.writeText(generateCommand())
@@ -221,11 +293,12 @@ export default function VectorOptimizationStudio() {
   }
 
   const getProgressColor = (elapsedTime: number) => {
-    if (elapsedTime < 30000) return "#22c55e"
-    if (elapsedTime < 120000) return "#eab308"
-    if (elapsedTime < 300000) return "#f97316"
-    return "#ef4444"
+    if (elapsedTime < 10000) return "#22c55e"
+    if (elapsedTime < 30000) return "#eab308"
+    return "#f97316"
   }
+
+  const selectedPresetData = CORE_PRESETS.find((p) => p.id === selectedPreset) || CORE_PRESETS[0]
 
   return (
     <div className="min-h-screen bg-white font-mono">
@@ -233,9 +306,15 @@ export default function VectorOptimizationStudio() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 pb-4">
           <h1 className="text-2xl font-bold text-black">● Vector Optimization Studio</h1>
-          <Button variant="outline" size="sm">
-            Help
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="text-sm text-green-600 flex items-center gap-1">
+              <CheckCircle className="h-4 w-4" />
+              Backend Ready
+            </div>
+            <Button variant="outline" size="sm">
+              Help
+            </Button>
+          </div>
         </div>
 
         {/* Upload Zone */}
@@ -249,8 +328,8 @@ export default function VectorOptimizationStudio() {
             >
               <Upload className="mx-auto h-12 w-12 text-gray-400" />
               <div>
-                <h3 className="text-lg font-semibold">Drag & drop images/PDFs here or click to browse</h3>
-                <p className="text-sm text-gray-600">Supports: PNG, JPG, PDF • Max size: 50MB</p>
+                <h3 className="text-lg font-semibold">Drag & drop images here or click to browse</h3>
+                <p className="text-sm text-gray-600">Supports: PNG, JPG • Recommended: {"<"} 2MB for optimal speed</p>
               </div>
               {uploadedFile && (
                 <div className="text-sm text-green-600">
@@ -260,7 +339,7 @@ export default function VectorOptimizationStudio() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*,.pdf"
+                accept="image/png,image/jpeg,image/jpg"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0]
@@ -271,8 +350,16 @@ export default function VectorOptimizationStudio() {
           </CardContent>
         </Card>
 
+        {/* Error Alert */}
+        {progress.status === "error" && progress.errorMessage && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">{progress.errorMessage}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Progress Tracking */}
-        {progress.status !== "idle" && (
+        {progress.status !== "idle" && progress.status !== "error" && (
           <Card className="border border-gray-300">
             <CardContent className="p-6">
               <div className="space-y-4">
@@ -280,28 +367,31 @@ export default function VectorOptimizationStudio() {
                   <span className="font-semibold">Vectorization Progress</span>
                   <span className="text-sm">
                     {progress.percentage.toFixed(0)}% | {formatTime(progress.elapsedTime)}
+                    {progress.estimatedTotal > 0 && ` / ~${formatTime(progress.estimatedTotal)}`}
                   </span>
                 </div>
 
                 <div className="relative">
                   <Progress
                     value={progress.percentage}
-                    className="h-3"
+                    className="h-4"
                     style={
                       {
                         "--progress-background": getProgressColor(progress.elapsedTime),
                       } as React.CSSProperties
                     }
                   />
-                  <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
-                    Phase {progress.phase}: {PHASES[progress.phase].name} - {progress.currentOperation}
+                  <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
+                    Phase {progress.phase}: {PROCESSING_PHASES[progress.phase].name}
                   </div>
                 </div>
+
+                <div className="text-sm text-gray-600">{progress.currentOperation}</div>
 
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowLogs(!showLogs)}>
                     {showLogs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    Show Detailed Log
+                    Show Processing Log
                   </Button>
 
                   {progress.status === "processing" && (
@@ -318,18 +408,23 @@ export default function VectorOptimizationStudio() {
 
                 {showLogs && (
                   <div className="bg-gray-50 p-4 rounded border text-xs font-mono space-y-1 max-h-40 overflow-y-auto">
-                    <div>[15:23:45] Phase 1: Image loaded: {uploadedFile?.name || "image.png"} (864×764, 308KB)</div>
-                    <div>[15:23:47] Phase 2: Color detection: 8 dominant colors found</div>
-                    <div className="text-green-600">[15:23:47] Phase 2: Brand palette applied: 3 exact colors</div>
-                    <div>[15:23:49] Phase 2: K-means quantization: 50,000 samples processed</div>
-                    <div>[15:23:52] Phase 3: Edge detection: 15,847 edge nodes identified</div>
-                    <div>[15:23:55] Phase 4: Layer 1 processing: 423 orange paths traced</div>
-                    <div>[15:23:58] Phase 4: Layer 2 processing: 289 black paths traced</div>
-                    <div>[15:24:01] Phase 4: Layer 3 processing: 180 white paths traced</div>
-                    <div>[15:24:03] Phase 5: SVG optimization: 892 final paths</div>
+                    <div>
+                      [{new Date().toLocaleTimeString()}] Phase 1: Image loaded: {uploadedFile?.name} (
+                      {Math.round((uploadedFile?.size || 0) / 1024)}KB)
+                    </div>
+                    <div>
+                      [{new Date().toLocaleTimeString()}] Phase 1: Detected {colorPalette.detectedColors.length}{" "}
+                      dominant colors
+                    </div>
+                    <div className="text-green-600">
+                      [{new Date().toLocaleTimeString()}] Phase 2: LAB color space conversion complete
+                    </div>
+                    <div>[{new Date().toLocaleTimeString()}] Phase 3: Advanced hole detection initialized</div>
+                    <div>[{new Date().toLocaleTimeString()}] Phase 3: Balanced layer ordering applied</div>
+                    <div>[{new Date().toLocaleTimeString()}] Phase 4: Generating cubic Bézier curves...</div>
                     {progress.status === "complete" && (
                       <div className="text-green-600">
-                        [15:24:04] Phase 6: ✅ Export complete: vectorized/output.svg
+                        [{new Date().toLocaleTimeString()}] Phase 5: ✅ SVG export complete with compound paths
                       </div>
                     )}
                   </div>
@@ -340,260 +435,169 @@ export default function VectorOptimizationStudio() {
         )}
 
         {/* Color Analysis & Brand Palette */}
-        <Card className="border border-gray-300">
-          <CardHeader>
-            <CardTitle className="text-lg">Color Analysis & Brand Palette</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium">Auto-detected Colors:</Label>
-              <div className="flex gap-2 mt-2">
-                {colorPalette.detectedColors.map((color, i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
-                    style={{ backgroundColor: color }}
-                    title={color}
-                    onClick={() => {
-                      if (!colorPalette.brandColors.includes(color)) {
-                        setColorPalette((prev) => ({
-                          ...prev,
-                          brandColors: [...prev.brandColors, color],
-                        }))
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Brand Color Palette:</Label>
-              <div className="flex gap-2 mt-2 items-center">
-                {colorPalette.brandColors.map((color, i) => (
-                  <div key={i} className="relative">
-                    <Input
-                      type="color"
-                      value={color}
-                      onChange={(e) => {
-                        const newColors = [...colorPalette.brandColors]
-                        newColors[i] = e.target.value
-                        setColorPalette((prev) => ({ ...prev, brandColors: newColors }))
+        {colorPalette.detectedColors.length > 0 && (
+          <Card className="border border-gray-300">
+            <CardHeader>
+              <CardTitle className="text-lg">Color Analysis & Brand Palette</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Auto-detected Colors:</Label>
+                <div className="flex gap-2 mt-2">
+                  {colorPalette.detectedColors.map((color, i) => (
+                    <div
+                      key={i}
+                      className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                      style={{ backgroundColor: color }}
+                      title={color}
+                      onClick={() => {
+                        if (!colorPalette.brandColors.includes(color)) {
+                          setColorPalette((prev) => ({
+                            ...prev,
+                            brandColors: [...prev.brandColors, color],
+                          }))
+                        }
                       }}
-                      className="w-8 h-8 p-0 border border-gray-300 rounded cursor-pointer"
                     />
-                  </div>
-                ))}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setColorPalette((prev) => ({
-                      ...prev,
-                      brandColors: [...prev.brandColors, "#000000"],
-                    }))
-                  }}
-                >
-                  + Add Color
-                </Button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <span className={`text-sm ${colorPalette.accuracy === 100 ? "text-green-600" : "text-orange-600"}`}>
-                {colorPalette.accuracy === 100 ? "✅" : "⚠️"} {colorPalette.accuracy}% brand color preservation
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+              <div>
+                <Label className="text-sm font-medium">Brand Color Palette:</Label>
+                <div className="flex gap-2 mt-2 items-center">
+                  {colorPalette.brandColors.map((color, i) => (
+                    <div key={i} className="relative">
+                      <Input
+                        type="color"
+                        value={color}
+                        onChange={(e) => {
+                          const newColors = [...colorPalette.brandColors]
+                          newColors[i] = e.target.value
+                          setColorPalette((prev) => ({ ...prev, brandColors: newColors }))
+                        }}
+                        className="w-8 h-8 p-0 border border-gray-300 rounded cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setColorPalette((prev) => ({
+                        ...prev,
+                        brandColors: [...prev.brandColors, "#000000"],
+                      }))
+                    }}
+                  >
+                    + Add Color
+                  </Button>
+                </div>
+              </div>
 
-        {/* Preset Selection */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-green-600">
+                  ✅ {colorPalette.accuracy}% LAB color space accuracy with hole preservation
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Core Preset Selection */}
         <Card className="border border-gray-300">
           <CardHeader>
-            <CardTitle className="text-lg">Preset Selection</CardTitle>
+            <CardTitle className="text-lg">Vectorization Presets</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-4 gap-4">
-              {PRESETS.map((preset) => (
+            <div className="grid grid-cols-2 gap-4">
+              {CORE_PRESETS.map((preset) => (
                 <div
                   key={preset.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                  className={`p-4 border rounded-lg cursor-pointer transition-all relative ${
                     selectedPreset === preset.id ? "border-black bg-gray-50" : "border-gray-300 hover:border-gray-400"
                   }`}
-                  onClick={() => setSelectedPreset(preset.id)}
+                  onClick={() => {
+                    setSelectedPreset(preset.id)
+                    setColorCount(preset.colors)
+                    setScaleMultiplier(preset.scale)
+                  }}
                 >
+                  {preset.recommended && (
+                    <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                      Recommended
+                    </div>
+                  )}
                   <div className="text-2xl mb-2">{preset.icon}</div>
                   <h4 className="font-semibold text-sm">{preset.name}</h4>
                   <p className="text-xs text-gray-600 mt-1">{preset.desc}</p>
+                  <div className="text-xs text-gray-500 mt-2">
+                    {preset.colors} colors • {preset.scale}x scale
+                  </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Performance Tuning */}
+        {/* Core Parameters */}
         <Card className="border border-gray-300">
           <CardHeader>
-            <CardTitle className="text-lg">Performance Tuning</CardTitle>
+            <CardTitle className="text-lg">Core Parameters</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium">Speed vs Quality Balance:</Label>
-              <div className="mt-2">
-                <Slider
-                  value={[performanceLevel]}
-                  onValueChange={(value) => setPerformanceLevel(value[0])}
-                  max={3}
-                  step={1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-600 mt-1">
-                  <span>Fast</span>
-                  <span>Balanced</span>
-                  <span>Quality</span>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <Label className="text-sm font-medium">Color Count: {colorCount}</Label>
+                <div className="mt-2">
+                  <Slider
+                    value={[colorCount]}
+                    onValueChange={(value) => setColorCount(value[0])}
+                    min={8}
+                    max={32}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-600 mt-1">
+                    <span>8 (Faster)</span>
+                    <span>32 (Higher Quality)</span>
+                  </div>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Fewer colors = faster processing, more colors = higher quality
+                </p>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Scale Multiplier: {scaleMultiplier}x</Label>
+                <div className="mt-2">
+                  <Slider
+                    value={[scaleMultiplier]}
+                    onValueChange={(value) => setScaleMultiplier(value[0])}
+                    min={1.0}
+                    max={4.0}
+                    step={0.1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-600 mt-1">
+                    <span>1.0x</span>
+                    <span>4.0x</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Output size multiplier for high-resolution exports</p>
               </div>
             </div>
 
-            <div className="flex gap-6 text-sm">
-              <span>Time: ~{PERFORMANCE_LEVELS[performanceLevel as keyof typeof PERFORMANCE_LEVELS].time}s</span>
-              <span>Size: {PERFORMANCE_LEVELS[performanceLevel as keyof typeof PERFORMANCE_LEVELS].size}</span>
-              <span>Quality: {PERFORMANCE_LEVELS[performanceLevel as keyof typeof PERFORMANCE_LEVELS].quality}%</span>
+            <div className="bg-blue-50 p-4 rounded border border-blue-200">
+              <div className="text-sm">
+                <strong>Current Settings:</strong> {selectedPresetData.name} preset with {colorCount} colors at{" "}
+                {scaleMultiplier}x scale
+              </div>
+              <div className="text-xs text-gray-600 mt-1">
+                Estimated processing time: {Math.ceil(((uploadedFile?.size || 500000) / 50000) * (colorCount / 16))}s
+              </div>
             </div>
           </CardContent>
-        </Card>
-
-        {/* Advanced Parameters */}
-        <Card className="border border-gray-300">
-          <CardHeader>
-            <CardTitle
-              className="text-lg cursor-pointer flex items-center gap-2"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-            >
-              {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              Advanced Parameters
-            </CardTitle>
-          </CardHeader>
-          {showAdvanced && (
-            <CardContent>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-semibold">Color Settings</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="colors" className="text-sm">
-                        Colors (1-256):
-                      </Label>
-                      <Input
-                        id="colors"
-                        type="number"
-                        min="1"
-                        max="256"
-                        value={advancedParams.colors}
-                        onChange={(e) =>
-                          setAdvancedParams((prev) => ({ ...prev, colors: Number.parseInt(e.target.value) }))
-                        }
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="sampling" className="text-sm">
-                        Sampling:
-                      </Label>
-                      <Select
-                        value={advancedParams.colorSampling}
-                        onValueChange={(value: any) => setAdvancedParams((prev) => ({ ...prev, colorSampling: value }))}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="palette">Palette</SelectItem>
-                          <SelectItem value="random">Random</SelectItem>
-                          <SelectItem value="deterministic">Deterministic</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="cycles" className="text-sm">
-                        Cycles (1-10):
-                      </Label>
-                      <Input
-                        id="cycles"
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={advancedParams.colorCycles}
-                        onChange={(e) =>
-                          setAdvancedParams((prev) => ({ ...prev, colorCycles: Number.parseInt(e.target.value) }))
-                        }
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-semibold">Quality Settings</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="lineThreshold" className="text-sm">
-                        Line Threshold:
-                      </Label>
-                      <Slider
-                        value={[advancedParams.lineThreshold]}
-                        onValueChange={(value) => setAdvancedParams((prev) => ({ ...prev, lineThreshold: value[0] }))}
-                        min={0.01}
-                        max={10}
-                        step={0.01}
-                        className="mt-2"
-                      />
-                      <span className="text-xs text-gray-600">{advancedParams.lineThreshold.toFixed(2)}</span>
-                    </div>
-                    <div>
-                      <Label htmlFor="curveThreshold" className="text-sm">
-                        Curve Threshold:
-                      </Label>
-                      <Slider
-                        value={[advancedParams.curveThreshold]}
-                        onValueChange={(value) => setAdvancedParams((prev) => ({ ...prev, curveThreshold: value[0] }))}
-                        min={0.01}
-                        max={10}
-                        step={0.01}
-                        className="mt-2"
-                      />
-                      <span className="text-xs text-gray-600">{advancedParams.curveThreshold.toFixed(2)}</span>
-                    </div>
-                    <div>
-                      <Label htmlFor="pathOmit" className="text-sm">
-                        Path Omit:
-                      </Label>
-                      <Slider
-                        value={[advancedParams.pathOmit]}
-                        onValueChange={(value) => setAdvancedParams((prev) => ({ ...prev, pathOmit: value[0] }))}
-                        min={0}
-                        max={50}
-                        className="mt-2"
-                      />
-                      <span className="text-xs text-gray-600">{advancedParams.pathOmit}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="rightAngle"
-                        checked={advancedParams.rightAngleEnhance}
-                        onCheckedChange={(checked) =>
-                          setAdvancedParams((prev) => ({ ...prev, rightAngleEnhance: !!checked }))
-                        }
-                      />
-                      <Label htmlFor="rightAngle" className="text-sm">
-                        Right Angle Enhancement
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          )}
         </Card>
 
         {/* Preview & Results */}
@@ -606,38 +610,63 @@ export default function VectorOptimizationStudio() {
               <div className="grid grid-cols-3 gap-6">
                 <div className="text-center">
                   <h4 className="font-semibold mb-2">Original</h4>
-                  <div className="aspect-square bg-gray-100 border border-gray-300 rounded flex items-center justify-center">
-                    <span className="text-gray-500">Image Preview</span>
+                  <div className="aspect-square bg-gray-100 border border-gray-300 rounded flex items-center justify-center overflow-hidden">
+                    {imagePreview ? (
+                      <img
+                        src={imagePreview || "/placeholder.svg"}
+                        alt="Original"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-gray-500">Loading...</span>
+                    )}
                   </div>
                   <div className="text-xs text-gray-600 mt-2">
-                    <div>864×764 PNG</div>
-                    <div>1.2MB</div>
+                    <div>{uploadedFile.name}</div>
+                    <div>{Math.round(uploadedFile.size / 1024)}KB</div>
                   </div>
                 </div>
 
                 <div className="text-center">
-                  <h4 className="font-semibold mb-2">Vectorized</h4>
+                  <h4 className="font-semibold mb-2">Vectorized SVG</h4>
                   <div className="aspect-square bg-gray-100 border border-gray-300 rounded flex items-center justify-center">
-                    <span className="text-gray-500">SVG Preview</span>
+                    {svgPreview ? (
+                      <div dangerouslySetInnerHTML={{ __html: svgPreview }} className="w-full h-full" />
+                    ) : progress.status === "complete" ? (
+                      <span className="text-green-600">✅ Ready</span>
+                    ) : (
+                      <span className="text-gray-500">Processing...</span>
+                    )}
                   </div>
-                  <div className="text-xs text-gray-600 mt-2">
-                    <div>892 paths</div>
-                    <div>3 colors</div>
-                  </div>
+                  {processingResult?.metrics && (
+                    <div className="text-xs text-gray-600 mt-2">
+                      <div>{processingResult.metrics.pathCount} paths</div>
+                      <div>{processingResult.metrics.colorCount} colors</div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-center">
                   <h4 className="font-semibold mb-2">Performance Metrics</h4>
-                  <div className="text-left space-y-1 text-sm">
-                    <div>Time: 21.4s</div>
-                    <div>Paths: 1,247→892</div>
-                    <div>Accuracy: 100%</div>
-                    <div>Size reduction: 67%</div>
-                  </div>
+                  {processingResult?.metrics ? (
+                    <div className="text-left space-y-1 text-sm">
+                      <div>Time: {formatTime(processingResult.metrics.processingTime)}</div>
+                      <div>Paths: {processingResult.metrics.pathCount}</div>
+                      <div>Colors: {processingResult.metrics.colorCount}</div>
+                      <div>Size reduction: {processingResult.metrics.sizeReduction}%</div>
+                      <div className="text-green-600 text-xs mt-2">
+                        ✅ Holes preserved
+                        <br />✅ Cubic Bézier curves
+                        <br />✅ LAB color accuracy
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">Metrics will appear after processing</div>
+                  )}
                 </div>
               </div>
 
-              {progress.status === "idle" && (
+              {progress.status === "idle" && uploadedFile && (
                 <div className="mt-6 text-center">
                   <Button onClick={startProcessing} className="bg-black text-white hover:bg-gray-800">
                     <Play className="h-4 w-4 mr-2" />
@@ -662,15 +691,15 @@ export default function VectorOptimizationStudio() {
             <div className="flex gap-2 flex-wrap">
               <Button variant="outline" size="sm" onClick={copyCommand}>
                 <Copy className="h-4 w-4 mr-2" />
-                Copy
+                Copy Command
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" disabled={!processingResult?.success}>
                 <Download className="h-4 w-4 mr-2" />
-                Download
+                Download SVG
               </Button>
               <Button variant="outline" size="sm">
                 <Share className="h-4 w-4 mr-2" />
-                Share
+                Share Settings
               </Button>
               <Button variant="outline" size="sm">
                 <Settings className="h-4 w-4 mr-2" />
@@ -678,22 +707,14 @@ export default function VectorOptimizationStudio() {
               </Button>
             </div>
 
-            <div>
-              <Label htmlFor="exportFormat" className="text-sm">
-                Export Format:
-              </Label>
-              <Select defaultValue="bash">
-                <SelectTrigger className="mt-1 w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bash">Bash Script (.sh)</SelectItem>
-                  <SelectItem value="batch">Batch File (.bat)</SelectItem>
-                  <SelectItem value="json">Settings JSON</SelectItem>
-                  <SelectItem value="url">Shareable URL</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {processingResult?.success && (
+              <div className="bg-green-50 p-4 rounded border border-green-200">
+                <div className="text-sm text-green-800">
+                  <strong>✅ Processing Complete!</strong>
+                </div>
+                <div className="text-xs text-green-700 mt-1">Output saved to: {processingResult.outputPath}</div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

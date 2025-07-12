@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #000000;
+  --color-background: #ffffff;
+  --color-secondary: #333333;
+  --color-border: #e5e5e5;
+  --color-success: #22c55e;
+  --color-warning: #f97316;
+  --color-error: #ef4444;
+  --font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --border-radius: 8px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family);
+  }
+}
+
+/* Custom charcoal-on-canvas styling */
+.charcoal-border {
+  border: 1px solid var(--color-border);
+}
+
+.dashed-border {
+  border: 2px dashed var(--color-border);
+}
+
+/* Progress bar custom styling */
+.progress-container {
+  @apply space-y-2;
+}
+
+.progress-bar {
+  @apply relative w-full h-3 bg-gray-200 rounded overflow-hidden;
+}
+
+.progress-fill {
+  @apply h-full transition-all duration-300 ease-out;
+}
+
+/* Preset card styling */
+.preset-card {
+  @apply transition-all duration-200 hover:shadow-sm;
+}
+
+.preset-card.selected {
+  @apply ring-2 ring-black;
+}
+
+/* Color swatch styling */
+.color-swatch {
+  @apply w-8 h-8 rounded border-2 border-gray-300 cursor-pointer transition-all duration-200;
+}
+
+.color-swatch:hover {
+  @apply scale-110 border-gray-400;
+}
+
+/* Advanced parameters styling */
+.params-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-6;
+}
+
+.param-group {
+  @apply space-y-3;
+}
+
+/* Log viewer styling */
+.log-viewer {
+  @apply max-h-40 overflow-y-auto space-y-1;
+}
+
+.log-entry {
+  @apply text-xs font-mono;
+}
+
+.log-entry.success {
+  @apply text-green-600;
+}
+
+.log-entry.warning {
+  @apply text-orange-600;
+}
+
+.log-entry.error {
+  @apply text-red-600;
+}
+
+/* Command display styling */
+.command-display {
+  @apply bg-gray-50 border border-gray-200 rounded p-4 font-mono text-sm overflow-x-auto;
+}
+
+.command-display pre {
+  @apply whitespace-pre-wrap break-all;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .preset-grid {
+    @apply grid-cols-2;
+  }
+
+  .params-grid {
+    @apply grid-cols-1;
+  }
+
+  .preview-grid {
+    @apply grid-cols-1;
+  }
+}
+
+@media (max-width: 480px) {
+  .preset-grid {
+    @apply grid-cols-1;
+  }
+
+  .color-row {
+    @apply flex-wrap;
+  }
+}
+
+/* Animation utilities */
+.fade-in {
+  animation: fadeIn 200ms ease-in-out;
+}
+
+.slide-in {
+  animation: slideIn 300ms ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus states */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2;
+}
+
+/* Custom slider styling */
+.performance-slider {
+  @apply w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer;
+}
+
+.performance-slider::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 bg-black rounded-full cursor-pointer;
+}
+
+.performance-slider::-moz-range-thumb {
+  @apply w-4 h-4 bg-black rounded-full cursor-pointer border-0;
+}

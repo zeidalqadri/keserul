@@ -24,6 +24,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Image from "next/image"
 
 interface ProgressState {
   phase: 1 | 2 | 3 | 4 | 5
@@ -101,7 +102,7 @@ const PROCESSING_PHASES = {
   5: { name: "SVG Optimization & Export", range: [90, 100] },
 }
 
-export default function VectorOptimizationStudio() {
+export default function RV0VectorStudio() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [progress, setProgress] = useState<ProgressState>({
@@ -293,46 +294,82 @@ export default function VectorOptimizationStudio() {
   }
 
   const getProgressColor = (elapsedTime: number) => {
-    if (elapsedTime < 10000) return "#22c55e"
-    if (elapsedTime < 30000) return "#eab308"
-    return "#f97316"
+    if (elapsedTime < 10000) return "linear-gradient(135deg, #00bcd4, #2196f3)"
+    if (elapsedTime < 30000) return "linear-gradient(135deg, #2196f3, #3f51b5)"
+    return "linear-gradient(135deg, #3f51b5, #673ab7)"
   }
 
   const selectedPresetData = CORE_PRESETS.find((p) => p.id === selectedPreset) || CORE_PRESETS[0]
 
   return (
-    <div className="min-h-screen bg-white font-mono">
+    <div className="min-h-screen bg-white font-mono rv0-pattern">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-10 right-10 opacity-5 animate-pulse">
+          <Image src="/rv0-logo.png" alt="" width={120} height={48} />
+        </div>
+        <div className="absolute bottom-20 left-10 opacity-5 animate-pulse" style={{ animationDelay: "1s" }}>
+          <Image src="/rv0-logo.png" alt="" width={80} height={32} />
+        </div>
+        <div className="absolute top-1/2 left-1/4 opacity-3 animate-pulse" style={{ animationDelay: "2s" }}>
+          <Image src="/rv0-logo.png" alt="" width={60} height={24} />
+        </div>
+      </div>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-          <h1 className="text-2xl font-bold text-black">● Vector Optimization Studio</h1>
-          <div className="flex items-center gap-2">
-            <div className="text-sm text-green-600 flex items-center gap-1">
+        <div className="flex items-center justify-between border-b border-gray-200 pb-4 bg-gradient-to-r from-blue-50/50 to-cyan-50/50 -mx-6 px-6 -mt-6 mb-6 rounded-t-lg">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Image
+                src="/rv0-logo.png"
+                alt="rv0"
+                width={100}
+                height={40}
+                className="h-10 w-auto drop-shadow-lg"
+                priority
+              />
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-lg blur-sm -z-10"></div>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent">
+                Vector Optimization Studio
+              </h1>
+              <p className="text-sm text-gray-600">Advanced raster-to-vector conversion engine</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-green-600 flex items-center gap-1 bg-green-50 px-3 py-1 rounded-full">
               <CheckCircle className="h-4 w-4" />
               Backend Ready
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="border-blue-200 hover:bg-blue-50 bg-transparent">
               Help
             </Button>
           </div>
         </div>
 
         {/* Upload Zone */}
-        <Card className="border-2 border-dashed border-gray-300">
-          <CardContent className="p-8">
+        <Card className="border-2 border-dashed border-blue-300 bg-gradient-to-br from-blue-50/30 to-cyan-50/30 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-5 flex items-center justify-center">
+            <Image src="/rv0-logo.png" alt="" width={300} height={120} className="pointer-events-none" />
+          </div>
+          <CardContent className="p-8 relative z-10">
             <div
               className="text-center space-y-4 cursor-pointer"
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="mx-auto h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                <Upload className="h-6 w-6 text-white" />
+              </div>
               <div>
-                <h3 className="text-lg font-semibold">Drag & drop images here or click to browse</h3>
+                <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                  Drag & drop images here or click to browse
+                </h3>
                 <p className="text-sm text-gray-600">Supports: PNG, JPG • Recommended: {"<"} 2MB for optimal speed</p>
               </div>
               {uploadedFile && (
-                <div className="text-sm text-green-600">
+                <div className="text-sm text-blue-600 font-medium">
                   ✓ {uploadedFile.name} ({Math.round(uploadedFile.size / 1024)}KB)
                 </div>
               )}
@@ -349,6 +386,11 @@ export default function VectorOptimizationStudio() {
             </div>
           </CardContent>
         </Card>
+        {!uploadedFile && (
+          <div className="absolute bottom-4 right-4 opacity-10">
+            <Image src="/rv0-logo.png" alt="" width={60} height={24} className="pointer-events-none" />
+          </div>
+        )}
 
         {/* Error Alert */}
         {progress.status === "error" && progress.errorMessage && (
@@ -364,7 +406,7 @@ export default function VectorOptimizationStudio() {
             <CardContent className="p-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold">Vectorization Progress</span>
+                  <span className="font-semibold">rv0 Vectorization Progress</span>
                   <span className="text-sm">
                     {progress.percentage.toFixed(0)}% | {formatTime(progress.elapsedTime)}
                     {progress.estimatedTotal > 0 && ` / ~${formatTime(progress.estimatedTotal)}`}
@@ -372,16 +414,12 @@ export default function VectorOptimizationStudio() {
                 </div>
 
                 <div className="relative">
-                  <Progress
-                    value={progress.percentage}
-                    className="h-4"
-                    style={
-                      {
-                        "--progress-background": getProgressColor(progress.elapsedTime),
-                      } as React.CSSProperties
-                    }
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
+                  <Progress value={progress.percentage} className="h-4 bg-gradient-to-r from-blue-100 to-cyan-100" />
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-300"
+                    style={{ width: `${progress.percentage}%` }}
+                  ></div>
+                  <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white mix-blend-difference">
                     Phase {progress.phase}: {PROCESSING_PHASES[progress.phase].name}
                   </div>
                 </div>
@@ -409,22 +447,22 @@ export default function VectorOptimizationStudio() {
                 {showLogs && (
                   <div className="bg-gray-50 p-4 rounded border text-xs font-mono space-y-1 max-h-40 overflow-y-auto">
                     <div>
-                      [{new Date().toLocaleTimeString()}] Phase 1: Image loaded: {uploadedFile?.name} (
+                      [{new Date().toLocaleTimeString()}] rv0: Image loaded: {uploadedFile?.name} (
                       {Math.round((uploadedFile?.size || 0) / 1024)}KB)
                     </div>
                     <div>
-                      [{new Date().toLocaleTimeString()}] Phase 1: Detected {colorPalette.detectedColors.length}{" "}
-                      dominant colors
+                      [{new Date().toLocaleTimeString()}] rv0: Detected {colorPalette.detectedColors.length} dominant
+                      colors
                     </div>
                     <div className="text-green-600">
-                      [{new Date().toLocaleTimeString()}] Phase 2: LAB color space conversion complete
+                      [{new Date().toLocaleTimeString()}] rv0: LAB color space conversion complete
                     </div>
-                    <div>[{new Date().toLocaleTimeString()}] Phase 3: Advanced hole detection initialized</div>
-                    <div>[{new Date().toLocaleTimeString()}] Phase 3: Balanced layer ordering applied</div>
-                    <div>[{new Date().toLocaleTimeString()}] Phase 4: Generating cubic Bézier curves...</div>
+                    <div>[{new Date().toLocaleTimeString()}] rv0: Advanced hole detection initialized</div>
+                    <div>[{new Date().toLocaleTimeString()}] rv0: Balanced layer ordering applied</div>
+                    <div>[{new Date().toLocaleTimeString()}] rv0: Generating cubic Bézier curves...</div>
                     {progress.status === "complete" && (
                       <div className="text-green-600">
-                        [{new Date().toLocaleTimeString()}] Phase 5: ✅ SVG export complete with compound paths
+                        [{new Date().toLocaleTimeString()}] rv0: ✅ SVG export complete with compound paths
                       </div>
                     )}
                   </div>
@@ -433,81 +471,92 @@ export default function VectorOptimizationStudio() {
             </CardContent>
           </Card>
         )}
+        {!uploadedFile && (
+          <div className="absolute bottom-4 right-4 opacity-10">
+            <Image src="/rv0-logo.png" alt="" width={60} height={24} className="pointer-events-none" />
+          </div>
+        )}
 
         {/* Color Analysis & Brand Palette */}
-        {colorPalette.detectedColors.length > 0 && (
-          <Card className="border border-gray-300">
-            <CardHeader>
-              <CardTitle className="text-lg">Color Analysis & Brand Palette</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium">Auto-detected Colors:</Label>
-                <div className="flex gap-2 mt-2">
-                  {colorPalette.detectedColors.map((color, i) => (
-                    <div
-                      key={i}
-                      className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
-                      style={{ backgroundColor: color }}
-                      title={color}
-                      onClick={() => {
-                        if (!colorPalette.brandColors.includes(color)) {
-                          setColorPalette((prev) => ({
-                            ...prev,
-                            brandColors: [...prev.brandColors, color],
-                          }))
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">Brand Color Palette:</Label>
-                <div className="flex gap-2 mt-2 items-center">
-                  {colorPalette.brandColors.map((color, i) => (
-                    <div key={i} className="relative">
-                      <Input
-                        type="color"
-                        value={color}
-                        onChange={(e) => {
-                          const newColors = [...colorPalette.brandColors]
-                          newColors[i] = e.target.value
-                          setColorPalette((prev) => ({ ...prev, brandColors: newColors }))
-                        }}
-                        className="w-8 h-8 p-0 border border-gray-300 rounded cursor-pointer"
-                      />
-                    </div>
-                  ))}
-                  <Button
-                    size="sm"
-                    variant="outline"
+        <Card className="border border-gray-300 relative overflow-hidden">
+          <div className="absolute top-2 right-2 opacity-5">
+            <Image src="/rv0-logo.png" alt="" width={40} height={16} className="pointer-events-none" />
+          </div>
+          <CardHeader>
+            <CardTitle className="text-lg rv0-gradient-text">Color Analysis & Brand Palette</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Auto-detected Colors:</Label>
+              <div className="flex gap-2 mt-2">
+                {colorPalette.detectedColors.map((color, i) => (
+                  <div
+                    key={i}
+                    className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                    style={{ backgroundColor: color }}
+                    title={color}
                     onClick={() => {
-                      setColorPalette((prev) => ({
-                        ...prev,
-                        brandColors: [...prev.brandColors, "#000000"],
-                      }))
+                      if (!colorPalette.brandColors.includes(color)) {
+                        setColorPalette((prev) => ({
+                          ...prev,
+                          brandColors: [...prev.brandColors, color],
+                        }))
+                      }
                     }}
-                  >
-                    + Add Color
-                  </Button>
-                </div>
+                  />
+                ))}
               </div>
+            </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-green-600">
-                  ✅ {colorPalette.accuracy}% LAB color space accuracy with hole preservation
-                </span>
+            <div>
+              <Label className="text-sm font-medium">Brand Color Palette:</Label>
+              <div className="flex gap-2 mt-2 items-center">
+                {colorPalette.brandColors.map((color, i) => (
+                  <div key={i} className="relative">
+                    <Input
+                      type="color"
+                      value={color}
+                      onChange={(e) => {
+                        const newColors = [...colorPalette.brandColors]
+                        newColors[i] = e.target.value
+                        setColorPalette((prev) => ({ ...prev, brandColors: newColors }))
+                      }}
+                      className="w-8 h-8 p-0 border border-gray-300 rounded cursor-pointer"
+                    />
+                  </div>
+                ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setColorPalette((prev) => ({
+                      ...prev,
+                      brandColors: [...prev.brandColors, "#000000"],
+                    }))
+                  }}
+                >
+                  + Add Color
+                </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-green-600">
+                ✅ {colorPalette.accuracy}% LAB color space accuracy with hole preservation
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+        {!uploadedFile && (
+          <div className="absolute bottom-4 right-4 opacity-10">
+            <Image src="/rv0-logo.png" alt="" width={60} height={24} className="pointer-events-none" />
+          </div>
         )}
 
         {/* Core Preset Selection */}
         <Card className="border border-gray-300">
           <CardHeader>
-            <CardTitle className="text-lg">Vectorization Presets</CardTitle>
+            <CardTitle className="text-lg">rv0 Vectorization Presets</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
@@ -515,7 +564,9 @@ export default function VectorOptimizationStudio() {
                 <div
                   key={preset.id}
                   className={`p-4 border rounded-lg cursor-pointer transition-all relative ${
-                    selectedPreset === preset.id ? "border-black bg-gray-50" : "border-gray-300 hover:border-gray-400"
+                    selectedPreset === preset.id
+                      ? "border-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-lg"
+                      : "border-gray-300 hover:border-blue-300 hover:bg-blue-50/30"
                   }`}
                   onClick={() => {
                     setSelectedPreset(preset.id)
@@ -524,7 +575,7 @@ export default function VectorOptimizationStudio() {
                   }}
                 >
                   {preset.recommended && (
-                    <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                    <div className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs px-2 py-1 rounded shadow-lg">
                       Recommended
                     </div>
                   )}
@@ -539,6 +590,11 @@ export default function VectorOptimizationStudio() {
             </div>
           </CardContent>
         </Card>
+        {!uploadedFile && (
+          <div className="absolute bottom-4 right-4 opacity-10">
+            <Image src="/rv0-logo.png" alt="" width={60} height={24} className="pointer-events-none" />
+          </div>
+        )}
 
         {/* Core Parameters */}
         <Card className="border border-gray-300">
@@ -599,6 +655,11 @@ export default function VectorOptimizationStudio() {
             </div>
           </CardContent>
         </Card>
+        {!uploadedFile && (
+          <div className="absolute bottom-4 right-4 opacity-10">
+            <Image src="/rv0-logo.png" alt="" width={60} height={24} className="pointer-events-none" />
+          </div>
+        )}
 
         {/* Preview & Results */}
         {uploadedFile && (
@@ -668,9 +729,12 @@ export default function VectorOptimizationStudio() {
 
               {progress.status === "idle" && uploadedFile && (
                 <div className="mt-6 text-center">
-                  <Button onClick={startProcessing} className="bg-black text-white hover:bg-gray-800">
-                    <Play className="h-4 w-4 mr-2" />
-                    Start Vectorization
+                  <Button
+                    onClick={startProcessing}
+                    className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-lg px-8 py-3 text-lg"
+                  >
+                    <Play className="h-5 w-5 mr-2" />
+                    Start rv0 Vectorization
                   </Button>
                 </div>
               )}
@@ -708,11 +772,16 @@ export default function VectorOptimizationStudio() {
             </div>
 
             {processingResult?.success && (
-              <div className="bg-green-50 p-4 rounded border border-green-200">
-                <div className="text-sm text-green-800">
-                  <strong>✅ Processing Complete!</strong>
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded border border-green-200 relative overflow-hidden">
+                <div className="absolute top-0 right-0 opacity-10">
+                  <Image src="/rv0-logo.png" alt="" width={80} height={32} className="pointer-events-none" />
                 </div>
-                <div className="text-xs text-green-700 mt-1">Output saved to: {processingResult.outputPath}</div>
+                <div className="text-sm text-green-800 relative z-10">
+                  <strong>✅ rv0 Processing Complete!</strong>
+                </div>
+                <div className="text-xs text-green-700 mt-1 relative z-10">
+                  Output saved to: {processingResult.outputPath}
+                </div>
               </div>
             )}
           </CardContent>

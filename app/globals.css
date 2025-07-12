@@ -100,3 +100,101 @@ body {
   max-width: 200px;
   max-height: 200px;
 }
+
+/* rv0 logo styling */
+.rv0-logo {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+/* rv0 Brand Styling */
+.rv0-gradient {
+  background: linear-gradient(135deg, #2196f3, #00bcd4, #4fc3f7);
+}
+
+.rv0-gradient-text {
+  background: linear-gradient(135deg, #1976d2, #0097a7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.rv0-glow {
+  box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
+}
+
+.rv0-border {
+  border-image: linear-gradient(135deg, #2196f3, #00bcd4) 1;
+}
+
+/* Animated rv0 background pattern */
+.rv0-pattern {
+  background-image: radial-gradient(circle at 25% 25%, rgba(33, 150, 243, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(0, 188, 212, 0.1) 0%, transparent 50%);
+  animation: rv0-float 6s ease-in-out infinite;
+}
+
+@keyframes rv0-float {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+/* rv0 logo styling enhancements */
+.rv0-logo-enhanced {
+  filter: drop-shadow(0 4px 8px rgba(33, 150, 243, 0.3));
+  transition: all 0.3s ease;
+}
+
+.rv0-logo-enhanced:hover {
+  filter: drop-shadow(0 6px 12px rgba(33, 150, 243, 0.4));
+  transform: scale(1.05);
+}
+
+/* Custom scrollbar with rv0 theming */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #2196f3, #00bcd4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #1976d2, #0097a7);
+}
+
+/* rv0 processing animation */
+.rv0-processing {
+  position: relative;
+  overflow: hidden;
+}
+
+.rv0-processing::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.4), transparent);
+  animation: rv0-scan 2s infinite;
+}
+
+@keyframes rv0-scan {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}

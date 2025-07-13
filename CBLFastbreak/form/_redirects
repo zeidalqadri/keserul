@@ -1,0 +1,5 @@
+# SPA fallback
+/*    /index.html   200
+
+# API routes for NextAuth
+/api/auth/*  /api/auth/index.html  200

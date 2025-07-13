@@ -108,6 +108,14 @@ BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
 
 ## Deployment
 
-- **Vercel** (recommended): `npm run build && vercel --prod`
+### Cloudflare Pages (Primary)
+- **Build command**: `npm run build`
+- **Output directory**: `out`
+- **Node.js version**: 18.x
+- **Auto-deployment**: Connected to GitHub repository
+- Requires all environment variables to be set in Cloudflare Pages dashboard
+
+### Alternative Deployments
+- **Vercel**: `npm run build && vercel --prod`
 - **Static export**: `npm run build` (configured for static hosting)
 - Requires all environment variables to be set in deployment platform

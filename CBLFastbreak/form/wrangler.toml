@@ -1,0 +1,8 @@
+name = "cbl-tournament-form"
+compatibility_date = "2024-07-13"
+
+[env.production]
+name = "cbl-tournament-form"
+
+[[env.production.vars]]
+NEXTAUTH_URL = "https://cbl-tournament-form.pages.dev"

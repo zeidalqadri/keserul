@@ -2,6 +2,8 @@
 
 import type React from "react"
 
+export const dynamic = 'force-static'
+
 import { useState, useCallback, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

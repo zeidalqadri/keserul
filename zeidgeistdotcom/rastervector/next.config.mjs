@@ -1,10 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  distDir: 'out',
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
   assetPrefix: '',
   basePath: '',
+  generateBuildId: () => 'build',
   eslint: {
     ignoreDuringBuilds: true,
   },

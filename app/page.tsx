@@ -154,6 +154,7 @@ export default function RV0VectorStudio() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const statusCheckInterval = useRef<NodeJS.Timeout | null>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
 
   // Check backend status on mount
   useEffect(() => {
@@ -418,6 +419,13 @@ export default function RV0VectorStudio() {
     return minutes > 0 ? `${minutes}M ${seconds % 60}S` : `${seconds}S`
   }
 
+  // Auto-scroll to preview on completion
+  useEffect(() => {
+    if (progress.status === "complete" && previewRef.current) {
+      previewRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [progress.status])
+
   // Cleanup interval on unmount
   useEffect(() => {
     return () => {
@@ -428,12 +436,12 @@ export default function RV0VectorStudio() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-bauhaus-gray font-bauhaus relative">
+    <div className="min-h-screen bg-bauhaus-gray font-bauhaus relative flex flex-col">
       <BauhausDecoration />
 
-      <div className="max-w-7xl mx-auto p-6 space-y-6 relative z-10">
+      <div className="mx-auto px-4 py-4 relative z-10 flex flex-col h-screen w-full">
         {/* Header */}
-        <div className="bauhaus-card p-4 relative">
+        <div className="bauhaus-card p-3 relative mb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="bauhaus-logo-container">
@@ -472,10 +480,9 @@ export default function RV0VectorStudio() {
           </div>
           <BauhausShape type="square" color="red" size="w-4 h-4" className="absolute top-3 right-3" />
         </div>
-
         {/* Backend Offline Warning */}
         {backendStatus.status === "offline" && (
-          <div className="bauhaus-card bg-bauhaus-red text-white p-4">
+          <div className="bauhaus-card bg-bauhaus-red text-white p-4 mb-3">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5" />
               <div>
@@ -490,347 +497,358 @@ export default function RV0VectorStudio() {
             </div>
           </div>
         )}
-
-        {/* Upload */}
-        <div
-          className="bauhaus-upload bauhaus-card p-8 text-center relative cursor-pointer"
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          title="Drag & drop images here or click to browse. Supports PNG, JPG, WEBP. Max 10MB."
-        >
-          <div className="w-12 h-12 bg-bauhaus-black mx-auto mb-3 flex items-center justify-center">
-            <Upload className="h-6 w-6 text-white" />
+        {/* Main Input Area - This will be scrollable if content exceeds height */}
+        <div className="flex-grow overflow-y-auto pr-2">
+          {/* Upload */}
+          <div
+            className="bauhaus-upload bauhaus-card p-4 text-center relative cursor-pointer mb-3"
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            title="Drag & drop images here or click to browse. Supports PNG, JPG, WEBP. Max 10MB."
+          >
+            <div className="w-12 h-12 bg-bauhaus-black mx-auto mb-3 flex items-center justify-center">
+              <Upload className="h-6 w-6 text-white" />
+            </div>
+            <h3 className="bauhaus-title text-lg text-bauhaus-black mb-2">
+              {uploadedFile ? `✓ ${uploadedFile.name}` : "UPLOAD IMAGE"}
+            </h3>
+            {uploadedFile && (
+              <div className="text-xs text-bauhaus-black opacity-70">{Math.round(uploadedFile.size / 1024)}KB</div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleFileUpload(file)
+              }}
+            />
           </div>
-          <h3 className="bauhaus-title text-lg text-bauhaus-black mb-2">
-            {uploadedFile ? `✓ ${uploadedFile.name}` : "UPLOAD IMAGE"}
-          </h3>
-          {uploadedFile && (
-            <div className="text-xs text-bauhaus-black opacity-70">{Math.round(uploadedFile.size / 1024)}KB</div>
+
+          {/* Error */}
+          {progress.status === "error" && progress.errorMessage && (
+            <div className="bauhaus-card bg-bauhaus-red text-white p-2 mb-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                <span className="font-bold">{progress.errorMessage}</span>
+              </div>
+            </div>
           )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/jpg,image/webp"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) handleFileUpload(file)
-            }}
-          />
-        </div>
 
-        {/* Error */}
-        {progress.status === "error" && progress.errorMessage && (
-          <div className="bauhaus-card bg-bauhaus-red text-white p-3">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
-              <span className="font-bold">{progress.errorMessage}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Progress */}
-        {progress.status !== "idle" && progress.status !== "error" && (
-          <div className="bauhaus-card p-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="bauhaus-title text-sm">
-                  PROGRESS {progress.jobId && `(${progress.jobId.slice(0, 8)}...)`}
-                </span>
-                <span className="text-xs">
-                  {progress.percentage.toFixed(0)}% | {formatTime(progress.elapsedTime)}
-                  {progress.estimatedTotal > 0 && ` / ~${formatTime(progress.estimatedTotal)}`}
-                </span>
-              </div>
-
-              <div className="relative">
-                <div className="h-6 bg-bauhaus-gray border-2 border-bauhaus-black relative overflow-hidden">
-                  <div
-                    className="h-full bauhaus-progress transition-all duration-300"
-                    style={{ width: `${progress.percentage}%` }}
-                  ></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs text-bauhaus-black font-bold mix-blend-difference">
-                      PHASE {progress.phase}
-                    </span>
-                  </div>
+          {/* Progress */}
+          {progress.status !== "idle" && progress.status !== "error" && (
+            <div className="bauhaus-card p-3 mb-3">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="bauhaus-title text-sm">
+                    PROGRESS {progress.jobId && `(${progress.jobId.slice(0, 8)}...)`}
+                  </span>
+                  <span className="text-xs">
+                    {progress.percentage.toFixed(0)}% | {formatTime(progress.elapsedTime)}
+                    {progress.estimatedTotal > 0 && ` / ~${formatTime(progress.estimatedTotal)}`}
+                  </span>
                 </div>
-              </div>
 
-              <div className="text-xs text-bauhaus-black">{progress.currentOperation}</div>
-
-              <button
-                className="bauhaus-button text-xs"
-                onClick={() => setShowLogs(!showLogs)}
-                title="Toggle processing logs"
-              >
-                {showLogs ? "HIDE" : "SHOW"} LOG
-              </button>
-
-              {showLogs && (
-                <div className="bg-bauhaus-black text-white p-3 font-mono text-xs space-y-1 max-h-32 overflow-y-auto">
-                  {logs.slice(-10).map((log, i) => (
-                    <div key={i} className={log.includes("✓") ? "text-bauhaus-yellow" : ""}>
-                      {log}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Colors */}
-        {colorPalette.detectedColors.length > 0 && (
-          <div className="bauhaus-card p-4 relative">
-            <h3 className="bauhaus-title text-sm mb-4">COLORS ({colorPalette.accuracy}% LAB ACCURACY)</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs block mb-2" title="Auto-detected dominant colors from your image">
-                  DETECTED:
-                </label>
-                <div className="flex gap-2">
-                  {colorPalette.detectedColors.map((color, i) => (
+                <div className="relative">
+                  <div className="h-6 bg-bauhaus-gray border-2 border-bauhaus-black relative overflow-hidden">
                     <div
-                      key={i}
-                      className="w-8 h-8 border-2 border-bauhaus-black cursor-pointer"
-                      style={{ backgroundColor: color }}
-                      title={`${color} - Click to add to brand palette`}
-                      onClick={() => {
-                        if (!colorPalette.brandColors.includes(color)) {
-                          setColorPalette((prev) => ({
-                            ...prev,
-                            brandColors: [...prev.brandColors, color],
-                          }))
-                        }
-                      }}
-                    />
-                  ))}
+                      className="h-full bauhaus-progress transition-all duration-300"
+                      style={{ width: `${progress.percentage}%` }}
+                    ></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs text-bauhaus-black font-bold mix-blend-difference">
+                        PHASE {progress.phase}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+
+                <div className="text-xs text-bauhaus-black">{progress.currentOperation}</div>
+
+                <button
+                  className="bauhaus-button text-xs"
+                  onClick={() => setShowLogs(!showLogs)}
+                  title="Toggle processing logs"
+                >
+                  {showLogs ? "HIDE" : "SHOW"} LOG
+                </button>
+
+                {showLogs && (
+                  <div className="bg-bauhaus-black text-white p-3 font-mono text-xs space-y-1 max-h-32 overflow-y-auto">
+                    {logs.slice(-10).map((log, i) => (
+                      <div key={i} className={log.includes("✓") ? "text-bauhaus-yellow" : ""}>
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Colors */}
+          {colorPalette.detectedColors.length > 0 && (
+            <div className="bauhaus-card p-3 relative mb-3">
+              <h3 className="bauhaus-title text-sm mb-4">COLORS ({colorPalette.accuracy}% LAB ACCURACY)</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs block mb-2" title="Auto-detected dominant colors from your image">
+                    DETECTED:
+                  </label>
+                  <div className="flex gap-2">
+                    {colorPalette.detectedColors.map((color, i) => (
+                      <div
+                        key={i}
+                        className="w-8 h-8 border-2 border-bauhaus-black cursor-pointer"
+                        style={{ backgroundColor: color }}
+                        title={`${color} - Click to add to brand palette`}
+                        onClick={() => {
+                          if (!colorPalette.brandColors.includes(color)) {
+                            setColorPalette((prev) => ({
+                              ...prev,
+                              brandColors: [...prev.brandColors, color],
+                            }))
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs block mb-2" title="Your brand colors for consistent output">
+                    BRAND:
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    {colorPalette.brandColors.map((color, i) => (
+                      <Input
+                        key={i}
+                        type="color"
+                        value={color}
+                        onChange={(e) => {
+                          const newColors = [...colorPalette.brandColors]
+                          newColors[i] = e.target.value
+                          setColorPalette((prev) => ({ ...prev, brandColors: newColors }))
+                        }}
+                        className="w-8 h-8 p-0 border-2 border-bauhaus-black cursor-pointer"
+                        title={`Brand color ${i + 1}: ${color}`}
+                      />
+                    ))}
+                    <button
+                      className="bauhaus-button text-xs"
+                      onClick={() => {
+                        setColorPalette((prev) => ({
+                          ...prev,
+                          brandColors: [...prev.brandColors, "#1a1a1a"],
+                        }))
+                      }}
+                      title="Add new brand color"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Presets */}
+          <div className="bauhaus-card p-3 mb-3">
+            <h3 className="bauhaus-title text-sm mb-2">PRESETS</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {CORE_PRESETS.map((preset) => (
+                <div
+                  key={preset.id}
+                  className={`p-3 border-3 cursor-pointer transition-all relative ${
+                    selectedPreset === preset.id
+                      ? "border-bauhaus-black bg-white"
+                      : "border-gray-400 bg-bauhaus-gray hover:border-bauhaus-black"
+                  }`}
+                  onClick={() => {
+                    setSelectedPreset(preset.id)
+                    setColorCount(preset.colors)
+                    setScaleMultiplier(preset.scale)
+                  }}
+                  title={preset.desc}
+                >
+                  {preset.recommended && (
+                    <div className="absolute -top-2 -right-2 bg-bauhaus-red text-white px-1 py-0.5 text-xs font-bold">
+                      ★
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 mb-1">
+                    <div
+                      className={`w-5 h-5 bg-${preset.color} flex items-center justify-center text-white text-xs font-bold`}
+                    >
+                      {preset.icon}
+                    </div>
+                    <h4 className="bauhaus-title text-xs">{preset.name}</h4>
+                  </div>
+
+                  <div className="text-xs text-bauhaus-black opacity-70">
+                    {preset.colors}C • {preset.scale}X
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Parameters */}
+          <div className="bauhaus-card p-3 mb-3">
+            <h3 className="bauhaus-title text-sm mb-2">PARAMETERS</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  className="text-xs block mb-1"
+                  title="Number of colors in output. More colors = higher quality but slower processing"
+                >
+                  COLORS: {colorCount}
+                </label>
+                <Slider
+                  value={[colorCount]}
+                  onValueChange={(value) => setColorCount(value[0])}
+                  min={8}
+                  max={32}
+                  step={1}
+                  className="w-full"
+                />
               </div>
 
               <div>
-                <label className="text-xs block mb-2" title="Your brand colors for consistent output">
-                  BRAND:
+                <label className="text-xs block mb-1" title="Output size multiplier for high-resolution exports">
+                  SCALE: {scaleMultiplier}X
                 </label>
-                <div className="flex gap-2 items-center">
-                  {colorPalette.brandColors.map((color, i) => (
-                    <Input
-                      key={i}
-                      type="color"
-                      value={color}
-                      onChange={(e) => {
-                        const newColors = [...colorPalette.brandColors]
-                        newColors[i] = e.target.value
-                        setColorPalette((prev) => ({ ...prev, brandColors: newColors }))
-                      }}
-                      className="w-8 h-8 p-0 border-2 border-bauhaus-black cursor-pointer"
-                      title={`Brand color ${i + 1}: ${color}`}
-                    />
-                  ))}
-                  <button
-                    className="bauhaus-button text-xs"
-                    onClick={() => {
-                      setColorPalette((prev) => ({
-                        ...prev,
-                        brandColors: [...prev.brandColors, "#1a1a1a"],
-                      }))
-                    }}
-                    title="Add new brand color"
-                  >
-                    +
-                  </button>
-                </div>
+                <Slider
+                  value={[scaleMultiplier]}
+                  onValueChange={(value) => setScaleMultiplier(value[0])}
+                  min={1.0}
+                  max={4.0}
+                  step={0.1}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
-        )}
-
-        {/* Presets */}
-        <div className="bauhaus-card p-4">
-          <h3 className="bauhaus-title text-sm mb-4">PRESETS</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {CORE_PRESETS.map((preset) => (
-              <div
-                key={preset.id}
-                className={`p-4 border-3 cursor-pointer transition-all relative ${
-                  selectedPreset === preset.id
-                    ? "border-bauhaus-black bg-white"
-                    : "border-gray-400 bg-bauhaus-gray hover:border-bauhaus-black"
-                }`}
-                onClick={() => {
-                  setSelectedPreset(preset.id)
-                  setColorCount(preset.colors)
-                  setScaleMultiplier(preset.scale)
-                }}
-                title={preset.desc}
-              >
-                {preset.recommended && (
-                  <div className="absolute -top-2 -right-2 bg-bauhaus-red text-white px-2 py-1">
-                    <span className="text-xs font-bold">★</span>
+        </div>{" "}
+        {/* End of main input area wrapper */}
+        {/* Preview & Command - These will be scrolled to */}
+        <div ref={previewRef} className="mt-auto pt-4">
+          {uploadedFile && (
+            <div className="bauhaus-card p-3 mb-3">
+              <h3 className="bauhaus-title text-sm mb-2">PREVIEW</h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <h4 className="text-xs mb-2">ORIGINAL</h4>
+                  <div className="aspect-square bg-bauhaus-gray border-2 border-bauhaus-black flex items-center justify-center overflow-hidden">
+                    {imagePreview ? (
+                      <img
+                        src={imagePreview || "/placeholder.svg"}
+                        alt="Original"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-xs">LOADING...</span>
+                    )}
                   </div>
-                )}
+                </div>
 
-                <div className="flex items-center gap-3 mb-2">
-                  <div
-                    className={`w-6 h-6 bg-${preset.color} flex items-center justify-center text-white text-sm font-bold`}
-                  >
-                    {preset.icon}
+                <div className="text-center">
+                  <h4 className="text-xs mb-2">VECTORIZED</h4>
+                  <div className="aspect-square bg-bauhaus-gray border-2 border-bauhaus-black flex items-center justify-center">
+                    {svgPreview ? (
+                      <div dangerouslySetInnerHTML={{ __html: svgPreview }} className="w-full h-full" />
+                    ) : progress.status === "complete" ? (
+                      <span className="text-xs text-bauhaus-blue">✓ READY</span>
+                    ) : (
+                      <span className="text-xs">PROCESSING...</span>
+                    )}
                   </div>
-                  <h4 className="bauhaus-title text-xs">{preset.name}</h4>
                 </div>
 
-                <div className="text-xs text-bauhaus-black opacity-70">
-                  {preset.colors}C • {preset.scale}X
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Parameters */}
-        <div className="bauhaus-card p-4">
-          <h3 className="bauhaus-title text-sm mb-4">PARAMETERS</h3>
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label
-                className="text-xs block mb-2"
-                title="Number of colors in output. More colors = higher quality but slower processing"
-              >
-                COLORS: {colorCount}
-              </label>
-              <Slider
-                value={[colorCount]}
-                onValueChange={(value) => setColorCount(value[0])}
-                min={8}
-                max={32}
-                step={1}
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs block mb-2" title="Output size multiplier for high-resolution exports">
-                SCALE: {scaleMultiplier}X
-              </label>
-              <Slider
-                value={[scaleMultiplier]}
-                onValueChange={(value) => setScaleMultiplier(value[0])}
-                min={1.0}
-                max={4.0}
-                step={0.1}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Preview */}
-        {uploadedFile && (
-          <div className="bauhaus-card p-4">
-            <h3 className="bauhaus-title text-sm mb-4">PREVIEW</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <h4 className="text-xs mb-2">ORIGINAL</h4>
-                <div className="aspect-square bg-bauhaus-gray border-2 border-bauhaus-black flex items-center justify-center overflow-hidden">
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview || "/placeholder.svg"}
-                      alt="Original"
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  ) : (
-                    <span className="text-xs">LOADING...</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-center">
-                <h4 className="text-xs mb-2">VECTORIZED</h4>
-                <div className="aspect-square bg-bauhaus-gray border-2 border-bauhaus-black flex items-center justify-center">
-                  {svgPreview ? (
-                    <div dangerouslySetInnerHTML={{ __html: svgPreview }} className="w-full h-full" />
-                  ) : progress.status === "complete" ? (
-                    <span className="text-xs text-bauhaus-blue">✓ READY</span>
-                  ) : (
-                    <span className="text-xs">PROCESSING...</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-center">
-                <h4 className="text-xs mb-2">METRICS</h4>
-                {processingResult?.metrics ? (
-                  <div className="text-left space-y-1 text-xs">
-                    <div>TIME: {formatTime(processingResult.metrics.processingTime)}</div>
-                    <div>PATHS: {processingResult.metrics.pathCount}</div>
-                    <div>COLORS: {processingResult.metrics.colorCount}</div>
-                    <div>REDUCTION: {processingResult.metrics.sizeReduction}%</div>
-                    <div className="text-bauhaus-blue">
-                      {Math.round(processingResult.metrics.originalSize / 1024)}KB →{" "}
-                      {Math.round(processingResult.metrics.outputSize / 1024)}KB
+                <div className="text-center">
+                  <h4 className="text-xs mb-2">METRICS</h4>
+                  {processingResult?.metrics ? (
+                    <div className="text-left space-y-1 text-xs">
+                      <div>TIME: {formatTime(processingResult.metrics.processingTime)}</div>
+                      <div>PATHS: {processingResult.metrics.pathCount}</div>
+                      <div>COLORS: {processingResult.metrics.colorCount}</div>
+                      <div>REDUCTION: {processingResult.metrics.sizeReduction}%</div>
+                      <div className="text-bauhaus-blue">
+                        {Math.round(processingResult.metrics.originalSize / 1024)}KB →{" "}
+                        {Math.round(processingResult.metrics.outputSize / 1024)}KB
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-bauhaus-black opacity-70">PENDING</div>
-                )}
+                  ) : (
+                    <div className="text-xs text-bauhaus-black opacity-70">PENDING</div>
+                  )}
+                </div>
               </div>
+
+              {(progress.status === "idle" || progress.status === "complete") &&
+                uploadedFile &&
+                backendStatus.status === "online" && (
+                  <div className="mt-4 text-center">
+                    <button
+                      onClick={startProcessing}
+                      className="bauhaus-button bauhaus-button-red text-sm px-6 py-2"
+                      title={
+                        progress.status === "complete"
+                          ? "Re-vectorize with current settings"
+                          : "Start vectorization with current settings"
+                      }
+                      disabled={progress.status === "processing"}
+                    >
+                      {progress.status === "complete" ? "RE-VECTORIZE" : "START VECTORIZATION"}
+                    </button>
+                  </div>
+                )}
+            </div>
+          )}
+
+          {/* Command & Export */}
+          <div className="bauhaus-card p-3">
+            <h3 className="bauhaus-title text-sm mb-2">API COMMAND</h3>
+            <div className="bg-bauhaus-black text-white p-2 font-mono text-xs overflow-x-auto mb-2">
+              <pre>{generateCommand()}</pre>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button className="bauhaus-button text-xs" onClick={copyCommand} title="Copy cURL command to clipboard">
+                <Copy className="w-3 h-3" />
+                COPY
+              </button>
+              <button
+                className="bauhaus-button bauhaus-button-blue text-xs"
+                disabled={!processingResult?.success}
+                onClick={downloadSvg}
+                title="Download vectorized SVG file"
+              >
+                <Download className="w-3 h-3" />
+                DOWNLOAD
+              </button>
+              <button
+                className="bauhaus-button bauhaus-button-yellow text-xs"
+                onClick={openApiDocs}
+                title="Open API documentation"
+              >
+                <ExternalLink className="w-3 h-3" />
+                DOCS
+              </button>
             </div>
 
-            {progress.status === "idle" && uploadedFile && backendStatus.status === "online" && (
-              <div className="mt-6 text-center">
-                <button
-                  onClick={startProcessing}
-                  className="bauhaus-button bauhaus-button-red text-sm px-8 py-3"
-                  title="Start vectorization with current settings"
-                >
-                  START VECTORIZATION
-                </button>
+            {processingResult?.success && (
+              <div className="bg-bauhaus-yellow text-bauhaus-black p-2 mt-3 relative">
+                <BauhausShape type="square" color="red" size="w-3 h-3" className="absolute top-1 right-1" />
+                <div className="text-sm font-bold">✓ VECTORIZATION COMPLETE!</div>
+                <div className="text-xs mt-0.5">
+                  Job ID: {progress.jobId} | Output: {processingResult.outputPath || "Ready for download"}
+                </div>
               </div>
             )}
           </div>
-        )}
-
-        {/* Command & Export */}
-        <div className="bauhaus-card p-4">
-          <h3 className="bauhaus-title text-sm mb-3">API COMMAND</h3>
-          <div className="bg-bauhaus-black text-white p-3 font-mono text-xs overflow-x-auto mb-3">
-            <pre>{generateCommand()}</pre>
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            <button className="bauhaus-button text-xs" onClick={copyCommand} title="Copy cURL command to clipboard">
-              <Copy className="w-3 h-3" />
-              COPY
-            </button>
-            <button
-              className="bauhaus-button bauhaus-button-blue text-xs"
-              disabled={!processingResult?.success}
-              onClick={downloadSvg}
-              title="Download vectorized SVG file"
-            >
-              <Download className="w-3 h-3" />
-              DOWNLOAD
-            </button>
-            <button
-              className="bauhaus-button bauhaus-button-yellow text-xs"
-              onClick={openApiDocs}
-              title="Open API documentation"
-            >
-              <ExternalLink className="w-3 h-3" />
-              DOCS
-            </button>
-          </div>
-
-          {processingResult?.success && (
-            <div className="bg-bauhaus-yellow text-bauhaus-black p-3 mt-4 relative">
-              <BauhausShape type="square" color="red" size="w-3 h-3" className="absolute top-2 right-2" />
-              <div className="text-sm font-bold">✓ VECTORIZATION COMPLETE!</div>
-              <div className="text-xs mt-1">
-                Job ID: {progress.jobId} | Output: {processingResult.outputPath || "Ready for download"}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

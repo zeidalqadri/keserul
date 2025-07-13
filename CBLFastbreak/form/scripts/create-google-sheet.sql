@@ -1,0 +1,29 @@
+-- Google Sheet Setup Instructions
+-- 
+-- 1. Create a new Google Sheet with the following columns in row 1:
+--    A1: Timestamp
+--    B1: Team Name  
+--    C1: Company 1
+--    D1: Company 2
+--    E1: Players List
+--    F1: Payment File URL
+--
+-- 2. Get the Sheet ID from the URL:
+--    https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit
+--
+-- 3. Create a Google Service Account:
+--    - Go to Google Cloud Console
+--    - Create a new project or select existing
+--    - Enable Google Sheets API
+--    - Create Service Account credentials
+--    - Download the JSON key file
+--
+-- 4. Share the Google Sheet with the service account email
+--    (found in the JSON key file as "client_email")
+--    Give it "Editor" permissions
+--
+-- 5. Set environment variables:
+--    GOOGLE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+--    GOOGLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n
+--    GOOGLE_SHEET_ID=your-sheet-id-from-url
+--    BLOB_READ_WRITE_TOKEN=your-vercel-blob-token

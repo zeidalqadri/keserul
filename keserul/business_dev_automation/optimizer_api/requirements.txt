@@ -1,0 +1,9 @@
+fastapi==0.104.1
+uvicorn==0.23.2
+pydantic==2.5.3
+fastapi-auth-oidc==0.1.2
+python-dotenv==1.0.0 # Added for .env file support
+httpx==0.27.0 # Added for async HTTP requests (if needed by OIDC client)
+python-jose==3.3.0 # Added for JWT decoding
+cryptography==41.0.3 # Added for JWT decoding
+prometheus_client==0.18.0 # Added for API latency metrics 

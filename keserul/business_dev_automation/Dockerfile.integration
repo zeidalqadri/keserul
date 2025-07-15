@@ -1,0 +1,38 @@
+FROM continuumio/miniconda3:latest
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy environment file
+COPY environment.yml .
+
+# Create conda environment
+RUN conda env create -f environment.yml
+
+# Make RUN commands use the new environment
+SHELL ["conda", "run", "-n", "business-dev-automation", "/bin/bash", "-c"]
+
+# Copy application code
+COPY . .
+
+# Add the archive tools to the Python path
+ENV PYTHONPATH="${PYTHONPATH}:/app/../archive/devin.cursorrules/tools"
+
+# Create necessary directories
+RUN mkdir -p /app/test-results /app/logs /app/config/grafana/datasources /app/config/grafana/dashboards
+
+# Set environment variables
+ENV CONDA_DEFAULT_ENV=business-dev-automation
+ENV CONDA_PREFIX=/opt/conda/envs/business-dev-automation
+
+# Expose port for Prometheus metrics
+EXPOSE 8000
+
+# Default command to run integration tests
+CMD ["conda", "run", "--no-capture-output", "-n", "business-dev-automation", "python", "test_integration.py"] 

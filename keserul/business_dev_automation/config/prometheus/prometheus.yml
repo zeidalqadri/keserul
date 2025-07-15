@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Scrape business dev automation metrics
+  - job_name: 'business-dev-automation'
+    static_configs:
+      - targets: ['orchestrator:8000']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # Scrape integration test metrics
+  - job_name: 'integration-tests'
+    static_configs:
+      - targets: ['integration-tests:8000']
+    scrape_interval: 5s
+    metrics_path: /metrics 

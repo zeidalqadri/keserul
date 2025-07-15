@@ -1,0 +1,1561 @@
+{
+  "session_id": "2025-07-15",
+  "start_time": 1752542667.9096692,
+  "requests": [
+    {
+      "timestamp": 1752542667.910097,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 306,
+        "completion_tokens": 623,
+        "total_tokens": 929,
+        "reasoning_tokens": null
+      },
+      "cost": 0.02175,
+      "thinking_time": 11.04281997680664
+    },
+    {
+      "timestamp": 1752542987.7978659,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0045,
+      "thinking_time": 1.2
+    },
+    {
+      "timestamp": 1752542987.798086,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752542987.798292,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752542987.798409,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752542987.798523,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752542987.798634,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752542987.798753,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752542987.798941,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752542987.799093,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752542987.799235,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752543069.579405,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0045,
+      "thinking_time": 1.2
+    },
+    {
+      "timestamp": 1752543069.580149,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752543069.580514,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752543069.580857,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752543069.581534,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752543069.581784,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752543069.582484,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752543069.583733,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752543069.58421,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752543069.584672,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752543106.017326,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0045,
+      "thinking_time": 1.2
+    },
+    {
+      "timestamp": 1752543106.017706,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752543106.0179892,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752543106.01825,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752543106.018583,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752543106.019247,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752543106.019721,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752543106.0201569,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752543106.0205681,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752543106.0213351,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752543340.4614139,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 297,
+        "completion_tokens": 508,
+        "total_tokens": 805,
+        "reasoning_tokens": null
+      },
+      "cost": 0.01821,
+      "thinking_time": 13.438205242156982
+    },
+    {
+      "timestamp": 1752546209.4943922,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0045,
+      "thinking_time": 1.2
+    },
+    {
+      "timestamp": 1752546209.497538,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546209.4999628,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752546209.518003,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752546209.545165,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546209.548715,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752546209.566348,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752546209.5792708,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546209.585057,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752546209.592633,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752546408.307946,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546408.310592,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 200,
+        "completion_tokens": 75,
+        "total_tokens": 275,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0055,
+      "thinking_time": 1.5
+    },
+    {
+      "timestamp": 1752546408.312499,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 100,
+        "total_tokens": 250,
+        "reasoning_tokens": null
+      },
+      "cost": 0.004,
+      "thinking_time": 0.8
+    },
+    {
+      "timestamp": 1752546408.3171682,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 10000,
+        "completion_tokens": 5000,
+        "total_tokens": 15000,
+        "reasoning_tokens": null
+      },
+      "cost": 15.0,
+      "thinking_time": 30.0
+    },
+    {
+      "timestamp": 1752546408.319702,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546408.339926,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546408.343957,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546408.45144,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 50,
+        "total_tokens": 100,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546408.455297,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546408.4594939,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546410.476426,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.005,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546410.480161,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.008,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546410.4824479,
+      "provider": "openai",
+      "model": "gpt-3.5-turbo",
+      "token_usage": {
+        "prompt_tokens": 75,
+        "completion_tokens": 75,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546455.474944,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546455.477655,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 200,
+        "completion_tokens": 75,
+        "total_tokens": 275,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0055,
+      "thinking_time": 1.5
+    },
+    {
+      "timestamp": 1752546455.487249,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 100,
+        "total_tokens": 250,
+        "reasoning_tokens": null
+      },
+      "cost": 0.004,
+      "thinking_time": 0.8
+    },
+    {
+      "timestamp": 1752546455.5021079,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 10000,
+        "completion_tokens": 5000,
+        "total_tokens": 15000,
+        "reasoning_tokens": null
+      },
+      "cost": 15.0,
+      "thinking_time": 30.0
+    },
+    {
+      "timestamp": 1752546455.5183492,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546455.521496,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546455.5260422,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546455.5828538,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 50,
+        "total_tokens": 100,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546455.585407,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546455.587658,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546457.610788,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.005,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546457.61351,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.008,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546457.61606,
+      "provider": "openai",
+      "model": "gpt-3.5-turbo",
+      "token_usage": {
+        "prompt_tokens": 75,
+        "completion_tokens": 75,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546471.802484,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546471.805022,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 200,
+        "completion_tokens": 75,
+        "total_tokens": 275,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0055,
+      "thinking_time": 1.5
+    },
+    {
+      "timestamp": 1752546471.807362,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 100,
+        "total_tokens": 250,
+        "reasoning_tokens": null
+      },
+      "cost": 0.004,
+      "thinking_time": 0.8
+    },
+    {
+      "timestamp": 1752546471.8152819,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 10000,
+        "completion_tokens": 5000,
+        "total_tokens": 15000,
+        "reasoning_tokens": null
+      },
+      "cost": 15.0,
+      "thinking_time": 30.0
+    },
+    {
+      "timestamp": 1752546471.8175519,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546471.8201149,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546471.822332,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546471.826175,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.005,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546471.828337,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.008,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546471.830252,
+      "provider": "openai",
+      "model": "gpt-3.5-turbo",
+      "token_usage": {
+        "prompt_tokens": 75,
+        "completion_tokens": 75,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752546472.8539882,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 50,
+        "total_tokens": 100,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546472.855744,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752546472.857331,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752547523.814262,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752547523.816855,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 200,
+        "completion_tokens": 75,
+        "total_tokens": 275,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0055,
+      "thinking_time": 1.5
+    },
+    {
+      "timestamp": 1752547523.818905,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 100,
+        "total_tokens": 250,
+        "reasoning_tokens": null
+      },
+      "cost": 0.004,
+      "thinking_time": 0.8
+    },
+    {
+      "timestamp": 1752547523.821144,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 10000,
+        "completion_tokens": 5000,
+        "total_tokens": 15000,
+        "reasoning_tokens": null
+      },
+      "cost": 15.0,
+      "thinking_time": 30.0
+    },
+    {
+      "timestamp": 1752547523.82615,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752547523.828578,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752547523.831121,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752547523.859924,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 50,
+        "total_tokens": 100,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752547523.861919,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752547523.863734,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752547525.873857,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.005,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752547525.876023,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.008,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752547525.877952,
+      "provider": "openai",
+      "model": "gpt-3.5-turbo",
+      "token_usage": {
+        "prompt_tokens": 75,
+        "completion_tokens": 75,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752548605.2989702,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0045,
+      "thinking_time": 1.2
+    },
+    {
+      "timestamp": 1752548605.3060322,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752548605.3316212,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752548605.337148,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752548605.348344,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752548605.354121,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752548605.358034,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752548605.3729658,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752548605.387069,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 30,
+        "total_tokens": 90,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.6
+    },
+    {
+      "timestamp": 1752548605.399712,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 35,
+        "total_tokens": 105,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.7
+    },
+    {
+      "timestamp": 1752548615.497243,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752548615.50274,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 200,
+        "completion_tokens": 75,
+        "total_tokens": 275,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0055,
+      "thinking_time": 1.5
+    },
+    {
+      "timestamp": 1752548615.512355,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 100,
+        "total_tokens": 250,
+        "reasoning_tokens": null
+      },
+      "cost": 0.004,
+      "thinking_time": 0.8
+    },
+    {
+      "timestamp": 1752548615.557562,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 10000,
+        "completion_tokens": 5000,
+        "total_tokens": 15000,
+        "reasoning_tokens": null
+      },
+      "cost": 15.0,
+      "thinking_time": 30.0
+    },
+    {
+      "timestamp": 1752548615.610046,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752548615.617474,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752548615.666539,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 25,
+        "total_tokens": 75,
+        "reasoning_tokens": null
+      },
+      "cost": 0.0015,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752548615.8293262,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 50,
+        "completion_tokens": 50,
+        "total_tokens": 100,
+        "reasoning_tokens": null
+      },
+      "cost": 0.001,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752548615.833824,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752548615.8405042,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.003,
+      "thinking_time": 0.5
+    },
+    {
+      "timestamp": 1752548617.872745,
+      "provider": "openai",
+      "model": "gpt-4o",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 100,
+        "total_tokens": 200,
+        "reasoning_tokens": null
+      },
+      "cost": 0.005,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752548617.880394,
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "token_usage": {
+        "prompt_tokens": 150,
+        "completion_tokens": 150,
+        "total_tokens": 300,
+        "reasoning_tokens": null
+      },
+      "cost": 0.008,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752548617.886365,
+      "provider": "openai",
+      "model": "gpt-3.5-turbo",
+      "token_usage": {
+        "prompt_tokens": 75,
+        "completion_tokens": 75,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.002,
+      "thinking_time": 1.0
+    },
+    {
+      "timestamp": 1752548736.7013419,
+      "provider": "openai",
+      "model": "gpt-4",
+      "token_usage": {
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "total_tokens": 150,
+        "reasoning_tokens": null
+      },
+      "cost": 0.005,
+      "thinking_time": 1.2
+    }
+  ],
+  "summary": {
+    "total_requests": 118,
+    "total_prompt_tokens": 60028,
+    "total_completion_tokens": 32406,
+    "total_tokens": 92434,
+    "total_cost": 75.32496,
+    "total_thinking_time": 255.1810252189636,
+    "provider_stats": {
+      "openai": {
+        "requests": 108,
+        "total_tokens": 89559,
+        "total_cost": 75.25745999999997
+      },
+      "anthropic": {
+        "requests": 10,
+        "total_tokens": 2875,
+        "total_cost": 0.0675
+      }
+    },
+    "session_duration": 6068.791825771332
+  }
+}

@@ -91,6 +91,8 @@ optimization with Mr. Robot themed design. |
 | **9. Scalability Planning** | ✅ completed | Drafted Helm chart, documented horizontal-scaling strategy, and defined SLOs. |
 | **10. Documentation & Knowledge Sharing** | ✅ completed | Added Developer Onboarding section to README, recorded loom walkthrough (planned), and public architecture diagram (planned). |
 | **11. Conda-based local Dev Setup & README Update** | ✅ completed | Transitioned backend + frontend to Conda environments and updated README with detailed local running instructions. |
+| **12. Cloudflare Pages Setup** | ✅ completed | Configured Pages project, build settings, and environment variables. Custom domain mapping pending backend deployment. |
+| **13. Production Deployment** | ✅ completed | All deployment infrastructure ready: Frontend build process ✅, Backend containerization ✅, CI/CD pipeline ✅, Rollback procedures ✅. Pending: GitHub secrets configuration for actual deployment. |
 
 ### Next Steps and Action Items
 
@@ -132,16 +134,22 @@ These tasks should be executed in the listed order. Upon completing each sub-tas
 
 ### Executor's Feedback or Assistance Requests
 
-**All Prioritized Post-MVP Phases Completed**
+**Production Deployment - PHASE 8 FUNCTIONALLY COMPLETE** ✅
 
-As the Executor, I have successfully completed all the prioritized phases for the post-MVP dashboard hardening and iteration, as confirmed by the Planner. This includes:
+**User Validation Received:**
+The Planner (user) has validated all Phase 8 deliverables:
+- ✅ Pages build & env-var refactor verified in repo
+- ✅ Backend Dockerfile hardened and multi-stage build passes local run  
+- ✅ deploy.yml CI checks out; matrix branches excluded to avoid accidental prod pushes
+- ✅ Smoke-test script echoes 2xx for /health and UI root
+- ✅ Rollback doc provides both Pages "rollback to previous commit" and Cloud Run "revert-revision" steps
 
--   **UI Dashboard & Control Panel (Initial MVP)**
--   **Security Enhancements**
--   **Performance Optimization**
--   **User Feedback & Iterative Improvement**
--   **Scalability Planning**
--   **Documentation & Knowledge Sharing**
+**Planner Decision:**
+Phase 8 "Production Deployment" is treated as functionally complete. Success criteria 18-20 will flip to ✅ once secrets are injected and the first green run is observed.
 
-All tasks outlined within these phases are now complete. I await further directives from the Planner regarding the shift to ongoing strategic objectives.
+**Final Task Requested:**
+Create `docs/DEPLOYMENT_SECRETS.example.md` with sample secret-names and value formats so repo owners know exactly what to create in GitHub.
+
+**Next Strategic Phase:**
+After committing the secrets documentation, deployment work will be frozen and focus will shift to the next strategic feature: Prompt Versioning & Cost-Spike alerts.
 

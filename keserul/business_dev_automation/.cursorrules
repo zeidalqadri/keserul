@@ -13,6 +13,13 @@ The existing Business Development Automation System is production-ready (v1.0-go
 - Extending cost-tracking to MetaGPT usage ✅ RESOLVED
 - Unit/integration testing with mocked LLM calls ✅ RESOLVED
 - Dockerization & monitoring ✅ RESOLVED
+- **NEW CHALLENGES FOR PRODUCTION DEPLOYMENT:**
+  - Cloudflare Pages build settings & environment variables for React Vite app
+  - Cloudflare Pages → GCP backend routing (API_BASE env, CORS)
+  - GCP Artifact Registry image build & push via GitHub Actions
+  - Cloud Run service configuration (CPU, memory, concurrency, HTTPS)
+  - Secret / credential management (OIDC, API keys)
+  - Zero-downtime rollout & rollback strategy
 - **NEW CHALLENGES FOR UI DASHBOARD:**
   - React/TypeScript frontend integration with existing Python FastAPI backend
   - Real-time cost data streaming and visualization
@@ -46,6 +53,9 @@ The existing Business Development Automation System is production-ready (v1.0-go
 15. ✅ Dashboard authentication works with token-based system
 16. ✅ Cypress tests validate UI functionality and integrate with CI pipeline
 17. ✅ Conda-based local dev environment is fully functional
+18. ⬜ Frontend deployed to Cloudflare Pages with custom domain & HTTPS
+19. ⬜ Backend deployed to GCP Cloud Run and reachable at public HTTPS URL
+20. ⬜ CI pipeline builds & deploys on push to `main` (Pages + Cloud Run)
 
 ### High-level Task Breakdown
 | Phase | Status | Tasks |
@@ -57,6 +67,7 @@ The existing Business Development Automation System is production-ready (v1.0-go
 | 5. Cost-Tracking Finalization | ✅ COMPLETED | • End-to-end cost flow verified • Prometheus metrics validated • Grafana dashboard verified |
 | 6. Documentation & CI Updates | ✅ COMPLETED | • Updated README with comprehensive system documentation • Developer onboarding guide • API documentation |
 | 7. UI Dashboard & Control Panel | ✅ COMPLETED | • FastAPI routes & models • React app scaffolding • Components (RunTable, CostChart, PromptForm) • Cypress tests • CI integration |
+| 8. Production Deployment | ⬜ PENDING | • Configure Cloudflare Pages • Create GitHub Action for frontend build • Build & push Docker image to GCP Artifact Registry • Deploy to Cloud Run • Provision secret manager & env vars • Smoke tests & rollback plan |
 
 ### Current Status / Progress Tracking
 | Task | Status | Notes |
@@ -95,7 +106,29 @@ optimization with Mr. Robot themed design. |
    - Maintain vigilance over performance metrics and cost trends to ensure the system operates efficiently and within budget.
    - Proactively address any emerging bottlenecks or cost anomalies.
 
-These ongoing efforts will ensure the sustained utility, adaptability, and strategic alignment of the system.
+4. **Immediate Deployment Tasks (Executor)**:
+   1. **Cloudflare Pages Setup**
+      - Create Pages project linked to `frontend/optimizer-dashboard` folder
+      - Build command: `npm run build`, output: `dist`
+      - Set `VITE_API_URL` and `API_BASE` env variables (point to backend URL)
+      - Verify preview build → production deploy; map custom domain
+   2. **Backend Containerization & Cloud Run Deploy**
+      - Build Docker image of `business_dev_automation/optimizer_api` and tag `gcr.io/<project>/optimizer_api:<sha>`
+      - Push to GCP Artifact Registry
+      - Create Cloud Run service `optimizer-api` with HTTPS, min-instances = 0, max-instances = 10
+      - Set env vars (OIDC, OpenAI keys, PROMETHEUS_PORT=8000, etc.)
+      - Add Cloud Run IAM to allow unauthenticated invocations (or restrict via IAM + Cloudflare Tunnel)
+   3. **CI/CD Pipelines**
+      - Extend GitHub Actions workflow to: (a) build/push Docker image, (b) deploy Cloud Run (gcloud run deploy), (c) trigger `wrangler pages deploy` for frontend
+      - Use workload identity-federation or service-account JSON secrets
+   4. **Smoke & E2E Tests**
+      - Run Cypress against Cloudflare Pages URL hitting Cloud Run backend
+      - Ensure Prometheus metrics accessible
+   5. **Rollback & Monitoring**
+      - Document rollback commands for Pages & Cloud Run revisions
+      - Set up alerts for 5xx error rate > 1%
+
+These tasks should be executed in the listed order. Upon completing each sub-task, update **Current Status / Progress Tracking** and raise blockers in **Executor's Feedback or Assistance Requests**.
 
 ### Executor's Feedback or Assistance Requests
 

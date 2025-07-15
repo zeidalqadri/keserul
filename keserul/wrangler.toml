@@ -1,0 +1,23 @@
+name = "keserul-dashboard"
+# Replace with your Cloudflare account ID (required for Wrangler deploy)
+account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+compatibility_date = "2025-07-15"
+
+# Build configuration for the Vite React dashboard
+[build]
+command = "npm run build"
+cwd = "frontend/optimizer-dashboard"
+# The folder containing the static build output
+upload_dir = "frontend/optimizer-dashboard/dist"
+
+# Serve the static assets from the build folder as a Pages site
+[site]
+bucket = "./frontend/optimizer-dashboard/dist"
+
+deploy_dir = "frontend/optimizer-dashboard/dist"
+
+# Optional: Replace API calls to /api/* with the GCP backend URL at runtime
+# This is done via a simple fetch handler.
+[vars]
+API_BASE = "https://your-gcp-backend-domain.com" 

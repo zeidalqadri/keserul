@@ -4,20 +4,50 @@ from dotenv import load_dotenv
 
 from fastapi import FastAPI, HTTPException, Query, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
-from business_dev_automation.optimizer_api.models import PromptRequest, PromptResponse, RunSummary, ErrorResponse
-from business_dev_automation.prompt_optimizer_bot.utils.optimize_prompt import optimize_prompt # Import the optimization function
-from business_dev_automation.shared.cost_manager import get_cost_manager, CostReport # Import CostManager components
+from models import PromptRequest, PromptResponse, RunSummary, ErrorResponse
 from typing import Optional, List
 import uuid
 import datetime
 import time
+import logging
+import sys
+import os
 
-from fastapi_auth_oidc import OIDCAuthFactory, IdpConfig
+from fastapi_auth_oidc import OIDCAuthFactory
 from prometheus_client import Histogram # Import Histogram
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# We'll handle optimizer imports dynamically to avoid path issues
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+try:
+    from prompt_optimizer_bot.utils.optimize_prompt import optimize_prompt
+    from shared.cost_manager import get_cost_manager, CostReport
+    optimizer_available = True
+except ImportError as e:
+    logger.warning(f"Optimizer dependencies not available: {e}")
+    optimizer_available = False
+    # Create stub classes to prevent import errors
+    class CostReport:
+        def __init__(self):
+            self.total_cost = 0.0
+            self.prompt_tokens = 0
+            self.completion_tokens = 0
+            self.run_id = ""
+    
+    def optimize_prompt(*args, **kwargs):
+        raise HTTPException(status_code=503, detail="Optimizer service not available")
+    
+    def get_cost_manager():
+        class DummyCostManager:
+            def track_cost(self, *args, **kwargs):
+                pass
+            def get_total_cost(self):
+                return 0.0
+        return DummyCostManager()
 
 # Load environment variables
 load_dotenv()
@@ -33,12 +63,9 @@ if not all([OIDC_ISSUER_URL, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET]):
     oidc_enabled = False
 else:
     oidc_enabled = True
-    oidc_config = IdpConfig(
-        client_id=OIDC_CLIENT_ID,
-        client_secret=OIDC_CLIENT_SECRET,
-        issuer=OIDC_ISSUER_URL,
-    )
-    OIDCAuth = OIDCAuthFactory(oidc_config)
+    # Create OIDC auth factory with issuer URL
+    # The package will automatically discover configuration from the issuer
+    OIDCAuth = OIDCAuthFactory(issuer=OIDC_ISSUER_URL)
 
 app = FastAPI()
 
@@ -79,7 +106,7 @@ app.add_middleware(
 )
 
 # Initialize CostManager (it will start Prometheus server if enabled)
-cost_manager = get_cost_manager(enable_prometheus=True, prometheus_port=8001)
+cost_manager = get_cost_manager() if optimizer_available else None
 
 # In-memory store for completed optimization runs
 # This will store CostReport objects directly and be used by /optimizer/runs
@@ -92,7 +119,7 @@ runs_cache = {
 }
 
 # Dependency to get current user and check roles
-def get_current_user(user: dict = Depends(OIDCAuth())):
+def get_current_user(user: dict = Depends(OIDCAuth() if oidc_enabled else lambda: {"sub": "anonymous", "roles": ["operator", "observer"]})):
     if not oidc_enabled:
         return {"sub": "anonymous", "roles": ["operator", "observer"]} # Allow all if OIDC is disabled for local dev
     return user
